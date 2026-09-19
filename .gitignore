@@ -1,0 +1,31 @@
+# INV-10: nothing large or secret enters the tree. This file is the chokepoint
+# for that rule (ADR-0001). Extend it; do not work around it.
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Model weights and caches. jevify owns no weights (INV-1); a local download
+# for an in-process adapter lives in the cache, never in git.
+.cache/
+models/
+*.safetensors
+*.gguf
+*.pt
+*.bin
+
+# Raw run outputs. Scorecard summaries derived from them are committed under
+# docs/evidence/ (ADR-0005); the raw per-decision files stay here.
+runs/
+
+# Secrets and local environment
+.env
+.env.*
+*.token
