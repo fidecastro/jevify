@@ -87,10 +87,11 @@ runs/              raw run outputs, git-ignored
 
 ### D7 — Documentation conventions
 
-Numbered documents carry an audience line and a status line. Claims carry the
-four evidence labels defined in `docs/00-invariants.md`. The ADR index's status
-column is the ledger. A change to a public seam updates its document in the
-same commit.
+Numbered documents carry an audience line and a status line. The ADR index's
+status column is the ledger. A change to a public seam updates its document in
+the same commit. Documents are written for a reader who arrives through their
+coding agent: the README tells the reader what to ask the agent, and the
+documents the agent reads say what is decided without ceremony.
 
 ### D8 — Ignore rules
 
