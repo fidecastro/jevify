@@ -1,15 +1,15 @@
-# Agent notes — JevCake
+# Agent notes — jevify
 
 Instructions for coding agents (Claude, Codex, Grok, Cursor, and others)
 working in this repository. These rules are **mandatory** unless the user
 explicitly overrides them for a task.
 
-This file governs **how** work is done here. It says nothing about **what**
-the project is: the design criteria, objectives and architecture are still
-under discussion and will live under `docs/` when decided, with each decision
-recorded as an ADR under `docs/adr/`. Until those documents exist, do not
-infer a product from the repository name, and do not write copy that
-describes one.
+This file governs **how** work is done here. **What** the project is lives in
+[`docs/00-invariants.md`](docs/00-invariants.md): purpose, vocabulary, the
+numbered invariants, the design criteria and the score-semantics contract.
+That document ranks above every ADR and above this file. Read it before
+changing anything. Decisions that constrain future work are ADRs under
+`docs/adr/`, indexed in [`docs/adr/README.md`](docs/adr/README.md).
 
 Four principles bind every change. They are adopted from
 [DevCake](https://github.com/flieber-inc/devcake) (its `AGENTS.md` and
@@ -119,4 +119,5 @@ one or documents why the process is genuinely plural.
 - **Local state** stays out of git: downloaded weights, caches, run outputs, generated data. `.gitignore` is the chokepoint for that rule; extend it, do not work around it.
 - **One intent per commit and per PR.** Small, reviewable diffs.
 - **Decisions are recorded.** A choice that constrains future work becomes an ADR under `docs/adr/`, indexed in `docs/adr/README.md`, whose status column is the ledger. Superseding an ADR updates both its row and its header.
-- **Honest claims.** No document, README line or result table claims more than the recorded evidence shows. When `docs/` defines the project's claim contract, outward copy may not exceed it.
+- **Honest claims.** No document, README line, scorecard or API response claims more than the recorded evidence shows. The claims contract is `docs/00-invariants.md` §5; copy that exceeds it is a defect on the same footing as a failing test.
+- **Vocabulary.** Use the terms defined in `docs/00-invariants.md` §2 and no synonyms: state, question, answer, semantics label, readout, adapter, port, probe, recipe, warm, evaluate, suite, scorecard, backend.
