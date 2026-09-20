@@ -1,0 +1,17 @@
+# Test recipe: an instruction-tuned embedding model behind /v1/embeddings.
+schema_version: 1
+model:
+  name: fake-embedder
+  kind: embedding
+endpoint:
+  base_url: http://fake/v1
+  dialect: generic
+  timeout_s: 30
+embedding:
+  query: "Instruct: {instructions}\nQuery: {state}"
+  option: "{text}"
+  scale: 10.0
+provenance:
+  author: tests
+  created: "2026-09-20"
+  status: draft

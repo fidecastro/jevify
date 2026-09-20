@@ -50,6 +50,7 @@ class Behaviour:
     slots: int = 2  # llama.cpp only: parallel slots, each with its own cache
     grammar: bool = False  # llama.cpp only: honour a GBNF grammar with post-sampling probs
     rerank_scores: dict[str, float] = field(default_factory=dict)  # document text -> score
+    embeddings: dict[str, list[float]] = field(default_factory=dict)  # text -> vector
     multimodal: bool = False  # accept image content parts / native multimodal_data
     # answer texts that tokenize to two tokens on this "model" (probe must catch them)
     multi_token_answers: set[str] = field(default_factory=set)
@@ -125,6 +126,7 @@ class FakeOpenAIServer:
             Route("/v1/models", self.models, methods=["GET"]),
             Route("/tokenize", self.tokenize, methods=["POST"]),
             Route("/v1/rerank", self.rerank, methods=["POST"]),
+            Route("/v1/embeddings", self.embeddings, methods=["POST"]),
         ]
         if self.behaviour.dialect == "vllm":
             routes.append(Route("/version", self.version, methods=["GET"]))
@@ -428,6 +430,29 @@ class FakeOpenAIServer:
                 "tokens_evaluated": usage["prompt_tokens"],
                 "tokens_cached": 0,
                 "completion_probabilities": [self._content_entry(sampled, entries, body)],
+            }
+        )
+
+    async def embeddings(self, request: Request) -> JSONResponse:
+        body = await request.json()
+        if (gated := self._gate(body, "/v1/embeddings")) is not None:
+            return gated
+        texts = body["input"] if isinstance(body["input"], list) else [body["input"]]
+        dim = len(next(iter(self.behaviour.embeddings.values()), [0.0, 0.0, 0.0]))
+        data = [
+            {
+                "object": "embedding",
+                "index": i,
+                "embedding": self.behaviour.embeddings.get(text, [0.0] * dim),
+            }
+            for i, text in enumerate(texts)
+        ]
+        return self._record(
+            {
+                "object": "list",
+                "model": body.get("model", "fake"),
+                "data": data,
+                "usage": {"prompt_tokens": 4 * len(texts), "total_tokens": 4 * len(texts)},
             }
         )
 

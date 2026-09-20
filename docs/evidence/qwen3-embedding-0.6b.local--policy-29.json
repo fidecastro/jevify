@@ -1,0 +1,198 @@
+{
+  "recipe": "recipes/qwen3-embedding-0.6b.local.yaml",
+  "recipe_stem": "qwen3-embedding-0.6b.local",
+  "recipe_hash": "6744727e53b65f48f23b0298be13a19a581c4617a2d4c8b4fa567991960dcdd3",
+  "model": "qwen3-embedding-0.6b",
+  "backend": {
+    "kind": "embedding",
+    "dialect": null,
+    "version": null,
+    "base_url": null,
+    "probed_at": "2026-09-20T02:02:30+00:00"
+  },
+  "suite": "policy-29",
+  "suite_file": "suites/policy-29.jsonl",
+  "suite_sha256": "c59cb29f97e78e67472206dd544c833c65bf06632d7de093760daff627b78015",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T02:02:38+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/qwen3-embedding-0.6b.local.yaml suites/policy-29.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 29,
+      "agreement_with_label": 0.4827586206896552,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 29,
+      "same_choice": 1.0,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "qwen3-embedding-0.6b.local--policy-29--20260920T020242Z.jsonl",
+  "raw_sha256": "256d8d44da6ca1f486f2205b01a7dee7cc3f2f175315550c04c02b9fc8690a9e",
+  "metrics": {
+    "cases": 29,
+    "scored": 29,
+    "errors": 0,
+    "accuracy": 0.6551724137931034,
+    "log_loss": 0.6928421359583695,
+    "brier": 0.41283994903873306,
+    "ece": 0.2252911280310887,
+    "groups": {
+      "diagnostic": {
+        "cases": 23,
+        "accuracy": 0.5652173913043478
+      },
+      "original": {
+        "cases": 6,
+        "accuracy": 1.0
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 7.958801987115294,
+      "p95": 91.0802736063487,
+      "mean": 122.06379679264501
+    }
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 1,
+      "confidence": 0.39697598892700187,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 13,
+      "confidence": 0.4508852260498537,
+      "accuracy": 0.3076923076923077
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 2,
+      "confidence": 0.5250599979819546,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 7,
+      "confidence": 0.6545535900547067,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 3,
+      "confidence": 0.850729942968854,
+      "accuracy": 0.6666666666666666
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 3,
+      "confidence": 0.9504279797930764,
+      "accuracy": 1.0
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "diagnostic_6_pointwise_instruction_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.027943615371181285
+    },
+    {
+      "case_id": "diagnostic_7_question_format_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.042008358914052635
+    },
+    {
+      "case_id": "diagnostic_8_policy_in_query_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.03862284841934882
+    },
+    {
+      "case_id": "diagnostic_9_pointwise_without_moving_fields_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.07291379631610173
+    },
+    {
+      "case_id": "diagnostic_15_amount_50_question",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.020324156047456854
+    },
+    {
+      "case_id": "diagnostic_17_amount_74_question",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.01356655830395781
+    },
+    {
+      "case_id": "diagnostic_19_amount_75_question",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.01923756727614656
+    },
+    {
+      "case_id": "diagnostic_20_amount_76_original",
+      "label": "Request manager approval.",
+      "selected": "Approve automatically.",
+      "confidence": 0.1050560250644208
+    },
+    {
+      "case_id": "diagnostic_22_amount_100_original",
+      "label": "Request manager approval.",
+      "selected": "Approve automatically.",
+      "confidence": 0.09640482365486713
+    },
+    {
+      "case_id": "diagnostic_25_instruction_flip",
+      "label": "Cancel the subscription.",
+      "selected": "Keep the subscription active.",
+      "confidence": 0.402488797485125
+    }
+  ],
+  "failed": []
+}

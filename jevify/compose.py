@@ -54,4 +54,23 @@ def build_backend(recipe: Recipe, *, http: Any | None = None) -> Backend:
             http=http,
         )
         return RerankBackend(client, recipe)
+    if recipe.model.kind == "embedding":
+        from jevify.adapters.embedding.adapter import EmbeddingBackend
+        from jevify.adapters.embedding.local import LocalEmbedder
+
+        if recipe.endpoint is not None:
+            api_key = (
+                os.environ.get(recipe.endpoint.api_key_env) if recipe.endpoint.api_key_env else None
+            )
+            client = OpenAICompatibleClient(
+                recipe.endpoint.base_url,
+                api_key=api_key,
+                timeout_s=recipe.endpoint.timeout_s,
+                http=http,
+            )
+            from jevify.adapters.embedding.adapter import EndpointEmbedder
+
+            return EmbeddingBackend(EndpointEmbedder(client, recipe), recipe)
+        assert recipe.local is not None
+        return EmbeddingBackend(LocalEmbedder(recipe.local), recipe)
     raise BackendError(f"model kind {recipe.model.kind!r} has no adapter yet")

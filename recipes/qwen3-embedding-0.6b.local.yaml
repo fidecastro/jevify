@@ -1,0 +1,55 @@
+schema_version: 1
+model:
+  name: qwen3-embedding-0.6b
+  kind: embedding
+  revision: Qwen/Qwen3-Embedding-0.6B
+embedding:
+  path: embeddings
+  query: 'Instruct: {instructions}
+
+    Query: {state}'
+  option: '{text}'
+  description_sep: ': '
+  scale: 10.0
+local:
+  path: Qwen/Qwen3-Embedding-0.6B
+  device: auto
+  max_tokens: 4096
+  pooling: last
+readout:
+  rung: auto
+  top_k: 20
+  permutation: none
+  permutation_calls: 1
+probe:
+  kind: embedding
+  model: qwen3-embedding-0.6b
+  dialect: null
+  backend_version: null
+  max_context: null
+  modalities:
+  - text
+  rungs: []
+  top_k_cap: null
+  logprobs_post_bias: null
+  prefill_honored: null
+  template_kwargs_honored: null
+  token_ids_verified: false
+  answer_tokens: {}
+  multi_token_answers: []
+  cache: null
+  fanout: null
+  slots: null
+  probed_at: '2026-09-20T02:02:30+00:00'
+  notes:
+  - embedding dimension 1024
+  - transport local
+  - choice questions only; cosine similarity, labeled similarity
+provenance:
+  author: Felipe Infante de Castro
+  created: '2026-09-20'
+  status: probed
+  notes:
+  - Carried from decision-poc, where the same model with a trained head was the baseline.
+  - Here it runs headless, cosine only, no training, as the embedding-kind control.
+  scorecards: []

@@ -126,6 +126,25 @@ class RerankSpec(_Strict):
     score_field: str = "relevance_score"
 
 
+class LocalModelSpec(_Strict):
+    """An in-process model (the `encoder` extra): a Hugging Face id or a local path."""
+
+    path: str
+    device: str = "auto"
+    max_tokens: int = Field(default=1024, ge=16)
+    pooling: Literal["last", "mean"] = "last"
+
+
+class EmbeddingSpec(_Strict):
+    """How an embedding-kind recipe forms the query and the option texts."""
+
+    path: str = "embeddings"  # under /v1, endpoint transport only
+    query: str  # the recipe owns the prompt: {instructions}, {state}
+    option: str = "{text}"  # {key}, {description}, {text} = description or key
+    description_sep: str = ": "
+    scale: float = Field(default=10.0, gt=0)  # cosine times scale feeds the ranking softmax
+
+
 class Provenance(_Strict):
     author: str
     created: str
@@ -142,6 +161,8 @@ class Recipe(_Strict):
     template: TemplateSpec | None = None
     answers: AnswersSpec | None = None
     rerank: RerankSpec | None = None
+    embedding: EmbeddingSpec | None = None
+    local: LocalModelSpec | None = None
     readout: ReadoutSpec = Field(default_factory=ReadoutSpec)
     budgets: Budgets | None = None
     calibration: Calibration | None = None
@@ -150,8 +171,13 @@ class Recipe(_Strict):
 
     @model_validator(mode="after")
     def _check_kind(self) -> Recipe:
-        if self.model.kind in ("endpoint", "rerank", "embedding") and self.endpoint is None:
+        if self.model.kind in ("endpoint", "rerank") and self.endpoint is None:
             raise ValueError(f"a {self.model.kind} recipe needs an endpoint section")
+        if self.model.kind == "embedding":
+            if self.embedding is None:
+                raise ValueError("an embedding recipe needs an embedding section")
+            if (self.endpoint is None) == (self.local is None):
+                raise ValueError("an embedding recipe needs exactly one of endpoint or local")
         if self.model.kind == "endpoint" and (self.template is None or self.answers is None):
             raise ValueError("an endpoint recipe needs template and answers sections")
         if self.model.kind == "rerank" and self.rerank is None:

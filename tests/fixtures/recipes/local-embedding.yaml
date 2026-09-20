@@ -1,0 +1,18 @@
+# Test recipe (marker `encoder`): a small public embedding model run in-process.
+schema_version: 1
+model:
+  name: sentence-transformers/all-MiniLM-L6-v2
+  kind: embedding
+local:
+  path: sentence-transformers/all-MiniLM-L6-v2
+  device: auto
+  max_tokens: 256
+  pooling: mean
+embedding:
+  query: "{instructions} {state}"
+  option: "{text}"
+  scale: 10.0
+provenance:
+  author: tests
+  created: "2026-09-20"
+  status: draft

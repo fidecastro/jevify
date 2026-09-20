@@ -34,3 +34,21 @@ jobs:
           uv tool install .
           cd "${RUNNER_TEMP}"
           jevify --version
+
+  encoder:
+    name: encoder extra (ubuntu, py3.12, cpu torch)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Sync (core + dev group)
+        run: uv sync --locked --group dev
+      - name: Add the encoder extra with CPU-only torch
+        run: |
+          uv pip install --index-url https://download.pytorch.org/whl/cpu torch
+          uv pip install transformers safetensors
+      - name: Test the in-process kinds (downloads small public models)
+        run: uv run --no-sync pytest -m encoder
