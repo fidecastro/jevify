@@ -1,0 +1,136 @@
+{
+  "recipe": "recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml",
+  "recipe_stem": "deepseek-v4-flash-vision-exp-keys.vllm",
+  "recipe_hash": "2d11f28d161422de24b0c9874cbe73f3f9841f56ced155f8efff1303113a6734",
+  "model": "deepseek-v4-flash-vision-exp-keys",
+  "backend": {
+    "kind": "endpoint",
+    "dialect": "vllm",
+    "version": "0.25.2.dev0+g752a3a504.d20260714",
+    "base_url": "http://192.168.2.20:8888/v1",
+    "probed_at": "2026-09-20T03:48:15+00:00"
+  },
+  "suite": "long-state-24",
+  "suite_file": "suites/long-state-24.jsonl",
+  "suite_sha256": "b090f3185e6632eeb6ebcb7750a4f5b667cd8c17f72e283a9b77d4dd38e85ecf",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T04:09:42+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml suites/long-state-24.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence",
+  "raw_file": "deepseek-v4-flash-vision-exp-keys.vllm--long-state-24--20260920T041326Z.jsonl",
+  "raw_sha256": "8d178929d8b9894662f150fa0802fd9a119a7f1fa87dfb927a5436ce4d7a941f",
+  "metrics": {
+    "cases": 24,
+    "scored": 24,
+    "errors": 0,
+    "accuracy": 1.0,
+    "log_loss": 2.0793447235682654e-05,
+    "brier": 2.0620715057771813e-09,
+    "ece": 2.0792765267674262e-05,
+    "groups": {
+      "16k": {
+        "cases": 6,
+        "accuracy": 1.0
+      },
+      "2k": {
+        "cases": 6,
+        "accuracy": 1.0
+      },
+      "32k": {
+        "cases": 6,
+        "accuracy": 1.0
+      },
+      "8k": {
+        "cases": 6,
+        "accuracy": 1.0
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 359.2686134943506,
+      "p95": 457.43746075022494,
+      "mean": 369.9248100007632
+    },
+    "warm_ms": {
+      "median": 7383.579645495047,
+      "p95": 20023.790605796967
+    },
+    "cached_token_share": 0.9859619183430154
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 24,
+      "confidence": 0.9999792072347323,
+      "accuracy": 1.0
+    }
+  ],
+  "wrong": [],
+  "failed": []
+}

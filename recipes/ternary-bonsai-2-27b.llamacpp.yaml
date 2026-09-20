@@ -129,7 +129,7 @@ probe:
   model: ternary-bonsai-2-27b
   dialect: llamacpp
   backend_version: b1-9a9394a
-  max_context: 16384
+  max_context: 65536
   modalities:
   - image
   - text
@@ -174,28 +174,28 @@ probe:
   multi_token_answers: []
   cache:
     block_tokens: 1
-    first_ms: 308.3769360091537
-    second_ms: 68.11625100090168
+    first_ms: 308.70359399705194
+    second_ms: 67.86550101242028
     cached_tokens: 932
     warm_prefix_tokens: 912
     warm_reuse_tokens: 912
   fanout:
     concurrency: 1
-    concurrent_ms: 131.28354999935254
-    sequential_ms: 134.07676698989235
-  slots: 2
-  probed_at: '2026-09-20T02:39:15+00:00'
+    concurrent_ms: 64.12676299805753
+    sequential_ms: 67.75700600701384
+  slots: 1
+  probed_at: '2026-09-20T04:14:52+00:00'
   notes:
   - grammar accepted but the reported probabilities are not constrained by it; the grammar rung is not
     proven on this build
-  - token-granular cache; the last 4 prompt tokens are re-evaluated on every call
+  - token-granular cache; up to 4 trailing prompt tokens are re-evaluated on a call
   image_marker: <__media__>
 provenance:
   author: Felipe Infante de Castro
   created: '2026-09-20'
   status: probed
   launch: LLAMA_MEDIA_MARKER='<__media__>' ~/Work/tries/llama.cpp-prism/build/bin/llama-server -m ~/Work/models/Ternary-Bonsai-2-27B-PQ2_0.gguf
-    --mmproj ~/Work/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf -c 32768 -ngl 99 --parallel 2 --port
+    --mmproj ~/Work/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf -c 65536 -ngl 99 --parallel 1 --port
     8082 --cache-reuse 256 --jinja
   notes:
   - 'Needs the PrismML fork of llama.cpp (github.com/PrismML-Eng/llama.cpp, branch prism, built here at
@@ -212,4 +212,5 @@ provenance:
     question reuses it.'
   - The prompt reproduces the GGUF's chat template with thinking off (an empty think block), which the
     probe checks against the server's own rendering.
+  - Launched with one 64k slot since 2026-09-20 so that 32k-token states fit; two 16k slots before.
   scorecards: []

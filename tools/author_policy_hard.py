@@ -38,9 +38,23 @@ FLIP_OPTS = [
     "Keep promotional emails enabled.",
 ]
 case("flip", "Select the action that satisfies the customer's request.", FLIP_STATE, FLIP_OPTS, 1)
-case("flip", "Select the action the customer explicitly asked NOT to take.", FLIP_STATE, FLIP_OPTS, 0)
-case("flip", "Select the action that would most clearly violate the customer's request.", FLIP_STATE, FLIP_OPTS, 0)
-case("flip", "Select the option that changes nothing the customer complained about.", FLIP_STATE, FLIP_OPTS, 2)
+case(
+    "flip", "Select the action the customer explicitly asked NOT to take.", FLIP_STATE, FLIP_OPTS, 0
+)
+case(
+    "flip",
+    "Select the action that would most clearly violate the customer's request.",
+    FLIP_STATE,
+    FLIP_OPTS,
+    0,
+)
+case(
+    "flip",
+    "Select the option that changes nothing the customer complained about.",
+    FLIP_STATE,
+    FLIP_OPTS,
+    2,
+)
 
 TEAM_STATE = "I was charged twice for my subscription. I want the extra payment returned."
 TEAM_OPTS = ["Billing and refunds", "Technical support", "Sales"]
@@ -55,22 +69,82 @@ case("flip", "Identify the tone that is the opposite of the customer's.", MOOD_S
 
 # ---------------------------------------------------------------- negation: the state, not the instruction, carries the twist
 INSTR_ACT = "Select the action that satisfies the customer's stated request without making unwanted changes."
-case("negation", INSTR_ACT, "Do not cancel my subscription. I only want the annual plan switched to monthly.",
-     ["Cancel the subscription.", "Switch the plan to monthly and keep the subscription.", "Keep the annual plan unchanged."], 1)
-case("negation", INSTR_ACT, "I never said I wanted a refund; I want the duplicate charge reversed, not the original one.",
-     ["Refund both charges.", "Reverse the duplicate charge only.", "Refund the original charge only."], 1)
-case("negation", INSTR_ACT, "Unless the delivery arrives by Friday, cancel the order. It is now Saturday and nothing has arrived.",
-     ["Cancel the order.", "Keep the order open.", "Reschedule delivery for Monday."], 0)
-case("negation", INSTR_ACT, "Unless the delivery arrives by Friday, cancel the order. It arrived Thursday.",
-     ["Cancel the order.", "Keep the order as delivered.", "Reschedule delivery for Monday."], 1)
-case("negation", INSTR_ACT, "Please do not withdraw my cancellation; I still want the account closed.",
-     ["Withdraw the cancellation and keep the account open.", "Proceed with closing the account.", "Pause the account for a month."], 1)
-case("negation", INSTR_ACT, "I said no to the upgrade twice. Stop offering it and just fix the login problem.",
-     ["Apply the upgrade.", "Fix the login problem without upgrading.", "Offer the upgrade with a discount."], 1)
-case("negation", INSTR_ACT, "It is not that I want to leave; the price increase is what I object to.",
-     ["Cancel the subscription.", "Review the price increase with the customer.", "Sell a higher tier."], 1)
-case("negation", "Identify the customer's tone.", "I am not angry, just disappointed that this took three weeks.",
-     ["Angry", "Disappointed", "Pleased"], 1)
+case(
+    "negation",
+    INSTR_ACT,
+    "Do not cancel my subscription. I only want the annual plan switched to monthly.",
+    [
+        "Cancel the subscription.",
+        "Switch the plan to monthly and keep the subscription.",
+        "Keep the annual plan unchanged.",
+    ],
+    1,
+)
+case(
+    "negation",
+    INSTR_ACT,
+    "I never said I wanted a refund; I want the duplicate charge reversed, not the original one.",
+    [
+        "Refund both charges.",
+        "Reverse the duplicate charge only.",
+        "Refund the original charge only.",
+    ],
+    1,
+)
+case(
+    "negation",
+    INSTR_ACT,
+    "Unless the delivery arrives by Friday, cancel the order. It is now Saturday and nothing has arrived.",
+    ["Cancel the order.", "Keep the order open.", "Reschedule delivery for Monday."],
+    0,
+)
+case(
+    "negation",
+    INSTR_ACT,
+    "Unless the delivery arrives by Friday, cancel the order. It arrived Thursday.",
+    ["Cancel the order.", "Keep the order as delivered.", "Reschedule delivery for Monday."],
+    1,
+)
+case(
+    "negation",
+    INSTR_ACT,
+    "Please do not withdraw my cancellation; I still want the account closed.",
+    [
+        "Withdraw the cancellation and keep the account open.",
+        "Proceed with closing the account.",
+        "Pause the account for a month.",
+    ],
+    1,
+)
+case(
+    "negation",
+    INSTR_ACT,
+    "I said no to the upgrade twice. Stop offering it and just fix the login problem.",
+    [
+        "Apply the upgrade.",
+        "Fix the login problem without upgrading.",
+        "Offer the upgrade with a discount.",
+    ],
+    1,
+)
+case(
+    "negation",
+    INSTR_ACT,
+    "It is not that I want to leave; the price increase is what I object to.",
+    [
+        "Cancel the subscription.",
+        "Review the price increase with the customer.",
+        "Sell a higher tier.",
+    ],
+    1,
+)
+case(
+    "negation",
+    "Identify the customer's tone.",
+    "I am not angry, just disappointed that this took three weeks.",
+    ["Angry", "Disappointed", "Pleased"],
+    1,
+)
 
 # ---------------------------------------------------------------- two thresholds: two conditions interact
 EXP = (
@@ -79,12 +153,28 @@ EXP = (
     "amount, any expense in the category Alcohol or Gifts needs a director."
 )
 EXP_OPTS = ["Approve automatically.", "Request manager approval.", "Request director approval."]
-INSTR_EXP = "Apply the expense policy in the state to the expense described and select the required action."
+INSTR_EXP = (
+    "Apply the expense policy in the state to the expense described and select the required action."
+)
 for amount, category, label in [
-    (40, "Meals", 0), (75, "Meals", 0), (76, "Meals", 1), (500, "Travel", 1), (501, "Travel", 2),
-    (40, "Gifts", 2), (75, "Alcohol", 2), (300, "Gifts", 2), (12, "Office supplies", 0), (499, "Software", 1),
+    (40, "Meals", 0),
+    (75, "Meals", 0),
+    (76, "Meals", 1),
+    (500, "Travel", 1),
+    (501, "Travel", 2),
+    (40, "Gifts", 2),
+    (75, "Alcohol", 2),
+    (300, "Gifts", 2),
+    (12, "Office supplies", 0),
+    (499, "Software", 1),
 ]:
-    case("threshold", INSTR_EXP, f"{EXP}\n\nExpense: amount {amount}, category {category}.", EXP_OPTS, label)
+    case(
+        "threshold",
+        INSTR_EXP,
+        f"{EXP}\n\nExpense: amount {amount}, category {category}.",
+        EXP_OPTS,
+        label,
+    )
 
 REF = (
     "Refund policy: a refund is granted when the request comes within 30 days of purchase AND the "
@@ -94,28 +184,58 @@ REF = (
 REF_OPTS = ["Grant a refund.", "Issue store credit.", "Decline the request."]
 INSTR_REF = "Apply the refund policy in the state to the request described and select the outcome."
 for days, used, faulty, label in [
-    (10, False, False, 0), (10, True, False, 1), (45, False, False, 2), (45, True, False, 2),
-    (45, True, True, 0), (30, False, False, 0), (31, False, False, 2), (3, True, True, 0),
+    (10, False, False, 0),
+    (10, True, False, 1),
+    (45, False, False, 2),
+    (45, True, False, 2),
+    (45, True, True, 0),
+    (30, False, False, 0),
+    (31, False, False, 2),
+    (3, True, True, 0),
 ]:
     desc = f"Request: {days} days after purchase, item {'used' if used else 'unused'}, {'faulty on arrival' if faulty else 'not faulty'}."
     case("threshold", INSTR_REF, f"{REF}\n\n{desc}", REF_OPTS, label)
 
 # ---------------------------------------------------------------- distractors: the wrong option's keyword is loud in the state
-case("distractor", "Identify the team that should handle this request.",
-     "Your sales rep promised me a discount in the sales call, but my real problem is that the app crashes every time I open the invoices tab.",
-     ["Billing and refunds", "Technical support", "Sales"], 1)
-case("distractor", "Identify the team that should handle this request.",
-     "Technical question, sort of: which of your plans includes the API? I am not a customer yet and want to buy.",
-     ["Billing and refunds", "Technical support", "Sales"], 2)
-case("distractor", INSTR_ACT,
-     "Cancel, cancel, cancel: that is what your form kept saying. I do NOT want to cancel. I want the failed payment retried.",
-     ["Cancel the subscription.", "Retry the failed payment and keep the subscription.", "Issue a refund."], 1)
-case("distractor", "Identify the customer's tone.",
-     "FURIOUS is what I would be if this had happened again, but you fixed it in an hour, so honestly, thank you.",
-     ["Angry", "Grateful", "Confused"], 1)
-case("distractor", INSTR_EXP,
-     f"{EXP}\n\nExpense: amount 60, category Meals. Note from submitter: this was a team dinner, no alcohol was ordered although the venue is a wine bar.",
-     EXP_OPTS, 0)
+case(
+    "distractor",
+    "Identify the team that should handle this request.",
+    "Your sales rep promised me a discount in the sales call, but my real problem is that the app crashes every time I open the invoices tab.",
+    ["Billing and refunds", "Technical support", "Sales"],
+    1,
+)
+case(
+    "distractor",
+    "Identify the team that should handle this request.",
+    "Technical question, sort of: which of your plans includes the API? I am not a customer yet and want to buy.",
+    ["Billing and refunds", "Technical support", "Sales"],
+    2,
+)
+case(
+    "distractor",
+    INSTR_ACT,
+    "Cancel, cancel, cancel: that is what your form kept saying. I do NOT want to cancel. I want the failed payment retried.",
+    [
+        "Cancel the subscription.",
+        "Retry the failed payment and keep the subscription.",
+        "Issue a refund.",
+    ],
+    1,
+)
+case(
+    "distractor",
+    "Identify the customer's tone.",
+    "FURIOUS is what I would be if this had happened again, but you fixed it in an hour, so honestly, thank you.",
+    ["Angry", "Grateful", "Confused"],
+    1,
+)
+case(
+    "distractor",
+    INSTR_EXP,
+    f"{EXP}\n\nExpense: amount 60, category Meals. Note from submitter: this was a team dinner, no alcohol was ordered although the venue is a wine bar.",
+    EXP_OPTS,
+    0,
+)
 
 # ---------------------------------------------------------------- long states: the decisive fact is buried in a long ticket history
 rng = random.Random(20260920)
@@ -150,15 +270,35 @@ def long_state(decisive: str, position: str, turns: int) -> str:
     return "Ticket transcript:\n" + "\n".join(lines)
 
 
-LONG_OPTS = ["Cancel the subscription.", "Keep the subscription active and change the plan to monthly.", "Issue a refund for the last invoice."]
+LONG_OPTS = [
+    "Cancel the subscription.",
+    "Keep the subscription active and change the plan to monthly.",
+    "Issue a refund for the last invoice.",
+]
 for position in ("start", "middle", "end"):
     for turns in (40, 120):
-        case("long", INSTR_ACT,
-             long_state("Customer: To be clear, I do not want to cancel anything. I want to move from annual to monthly billing.", position, turns),
-             LONG_OPTS, 1)
-        case("long", INSTR_ACT,
-             long_state("Customer: I have decided. Please cancel the subscription today; I do not want another plan.", position, turns),
-             LONG_OPTS, 0)
+        case(
+            "long",
+            INSTR_ACT,
+            long_state(
+                "Customer: To be clear, I do not want to cancel anything. I want to move from annual to monthly billing.",
+                position,
+                turns,
+            ),
+            LONG_OPTS,
+            1,
+        )
+        case(
+            "long",
+            INSTR_ACT,
+            long_state(
+                "Customer: I have decided. Please cancel the subscription today; I do not want another plan.",
+                position,
+                turns,
+            ),
+            LONG_OPTS,
+            0,
+        )
 
 # ---------------------------------------------------------------- write
 name = f"policy-hard-{len(cases)}"

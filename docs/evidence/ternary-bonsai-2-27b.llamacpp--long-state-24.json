@@ -10,60 +10,54 @@
     "base_url": "http://127.0.0.1:8082/v1",
     "probed_at": "2026-09-20T04:14:52+00:00"
   },
-  "suite": "policy-29",
-  "suite_file": "suites/policy-29.jsonl",
-  "suite_sha256": "c59cb29f97e78e67472206dd544c833c65bf06632d7de093760daff627b78015",
+  "suite": "long-state-24",
+  "suite_file": "suites/long-state-24.jsonl",
+  "suite_sha256": "b090f3185e6632eeb6ebcb7750a4f5b667cd8c17f72e283a9b77d4dd38e85ecf",
   "expected_answers_by": "human (the author of the cases)",
   "jevify_version": "0.1.0",
   "python": "3.14.7",
-  "run_at": "2026-09-20T04:19:51+00:00",
+  "run_at": "2026-09-20T04:17:32+00:00",
   "concurrency": 1,
-  "command": "jevify eval recipes/ternary-bonsai-2-27b.llamacpp.yaml suites/policy-29.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
-  "controls": {
-    "shuffled_context": {
-      "cases": 29,
-      "agreement_with_label": 0.7241379310344828,
-      "failed": [],
-      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
-    },
-    "option_permutation": {
-      "cases": 29,
-      "same_choice": 1.0,
-      "failed": [],
-      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
-    }
-  },
-  "raw_file": "ternary-bonsai-2-27b.llamacpp--policy-29--20260920T042014Z.jsonl",
-  "raw_sha256": "9b36d6d39a3a1708de447b95b2fdabe3d3d00ccc324fc54225a6cb5c4c9a93d8",
+  "command": "jevify eval recipes/ternary-bonsai-2-27b.llamacpp.yaml suites/long-state-24.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence",
+  "raw_file": "ternary-bonsai-2-27b.llamacpp--long-state-24--20260920T041951Z.jsonl",
+  "raw_sha256": "cfdf18e65f445dc871b5535cd025b3ff61dfcc0a294eb58692c3a02a761b3f53",
   "metrics": {
-    "cases": 29,
-    "scored": 29,
+    "cases": 24,
+    "scored": 24,
     "errors": 0,
     "accuracy": 1.0,
-    "log_loss": 0.0024051423718117,
-    "brier": 3.149183346597253e-05,
-    "ece": 0.0023962956731600205,
+    "log_loss": 0.0023409698743830838,
+    "brier": 1.5350547010134817e-05,
+    "ece": 0.0023363553424138317,
     "groups": {
-      "diagnostic": {
-        "cases": 23,
+      "16k": {
+        "cases": 6,
         "accuracy": 1.0
       },
-      "original": {
+      "2k": {
+        "cases": 6,
+        "accuracy": 1.0
+      },
+      "32k": {
+        "cases": 6,
+        "accuracy": 1.0
+      },
+      "8k": {
         "cases": 6,
         "accuracy": 1.0
       }
     },
     "degraded": 0,
     "latency_ms": {
-      "median": 97.86753801745363,
-      "p95": 102.53025619313121,
-      "mean": 97.39222865278737
+      "median": 112.71726249833591,
+      "p95": 135.89895115437685,
+      "mean": 115.77667645785066
     },
     "warm_ms": {
-      "median": 144.61512997513637,
-      "p95": 193.49470381275748
+      "median": 4460.315001488198,
+      "p95": 12918.784093554132
     },
-    "cached_token_share": 0.41653568060358376
+    "cached_token_share": 0.9954325537760504
   },
   "reliability": [
     {
@@ -132,8 +126,8 @@
     {
       "lower": 0.9,
       "upper": 1.0,
-      "count": 29,
-      "confidence": 0.99760370432684,
+      "count": 24,
+      "confidence": 0.9976636446575862,
       "accuracy": 1.0
     }
   ],

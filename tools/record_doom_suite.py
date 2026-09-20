@@ -13,8 +13,8 @@ import argparse
 import hashlib
 import json
 import random
-import zlib
 import struct
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -24,7 +24,15 @@ ROOT = Path(__file__).resolve().parents[1] / "suites"
 SCENARIO = "deadly_corridor"
 TICS_PER_ACTION = 4
 ENEMIES = {"Zombieman", "ShotgunGuy", "ChaingunGuy", "Imp", "Demon", "MarineChainsaw"}
-BUTTONS = ["move left", "move right", "attack", "move forward", "move backward", "turn left", "turn right"]
+BUTTONS = [
+    "move left",
+    "move right",
+    "attack",
+    "move forward",
+    "move backward",
+    "turn left",
+    "turn right",
+]
 
 
 def png_bytes(rgb: np.ndarray) -> bytes:
@@ -33,10 +41,19 @@ def png_bytes(rgb: np.ndarray) -> bytes:
     raw = b"".join(b"\x00" + rgb[y].tobytes() for y in range(h))
 
     def chunk(tag: bytes, data: bytes) -> bytes:
-        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+        return (
+            struct.pack(">I", len(data))
+            + tag
+            + data
+            + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+        )
 
-    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
-            + chunk(b"IDAT", zlib.compress(raw, 6)) + chunk(b"IEND", b""))
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(raw, 6))
+        + chunk(b"IEND", b"")
+    )
 
 
 def make_game(seed: int) -> vzd.DoomGame:
@@ -47,11 +64,20 @@ def make_game(seed: int) -> vzd.DoomGame:
     game.set_screen_resolution(vzd.ScreenResolution.RES_640X480)
     game.set_screen_format(vzd.ScreenFormat.RGB24)
     game.set_labels_buffer_enabled(True)
-    game.set_available_buttons([
-        vzd.Button.MOVE_LEFT, vzd.Button.MOVE_RIGHT, vzd.Button.ATTACK, vzd.Button.MOVE_FORWARD,
-        vzd.Button.MOVE_BACKWARD, vzd.Button.TURN_LEFT, vzd.Button.TURN_RIGHT,
-    ])
-    game.set_available_game_variables([vzd.GameVariable.HEALTH, vzd.GameVariable.AMMO2, vzd.GameVariable.KILLCOUNT])
+    game.set_available_buttons(
+        [
+            vzd.Button.MOVE_LEFT,
+            vzd.Button.MOVE_RIGHT,
+            vzd.Button.ATTACK,
+            vzd.Button.MOVE_FORWARD,
+            vzd.Button.MOVE_BACKWARD,
+            vzd.Button.TURN_LEFT,
+            vzd.Button.TURN_RIGHT,
+        ]
+    )
+    game.set_available_game_variables(
+        [vzd.GameVariable.HEALTH, vzd.GameVariable.AMMO2, vzd.GameVariable.KILLCOUNT]
+    )
     game.set_seed(seed)
     game.init()
     return game
@@ -62,7 +88,14 @@ def enemies_on_screen(state, width: int) -> list[dict]:
     for label in state.labels:
         if label.object_name in ENEMIES and label.width > 0:
             centre = (label.x + label.width / 2) / width  # 0 = left edge, 1 = right edge
-            out.append({"name": label.object_name, "centre": centre, "width": label.width, "height": label.height})
+            out.append(
+                {
+                    "name": label.object_name,
+                    "centre": centre,
+                    "width": label.width,
+                    "height": label.height,
+                }
+            )
     return sorted(out, key=lambda e: -e["height"])  # the tallest on screen is the nearest
 
 
@@ -86,7 +119,9 @@ def side(enemies: list[dict]) -> str:
     return "left" if offset < 0 else "right"
 
 
-def record(seeds: list[int], steps: int, every: int, out_dir: Path, rng: random.Random) -> list[dict]:
+def record(
+    seeds: list[int], steps: int, every: int, out_dir: Path, rng: random.Random
+) -> list[dict]:
     frames_dir = out_dir / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict] = []
@@ -107,18 +142,48 @@ def record(seeds: list[int], steps: int, every: int, out_dir: Path, rng: random.
                 health, ammo, kills = (float(v) for v in state.game_variables)
                 context = f"A first-person view from a shooter game. Health {health:.0f}, ammo {ammo:.0f}."
                 base = {"context": context, "images": [name], "seed": seed, "step": step}
-                rows.append({**base, "case_id": f"visible_{n}", "group": "enemy_visible", "question_type": "noul",
-                             "instruction": "An enemy is visible on screen.", "options": ["false", "true"],
-                             "label": 1 if enemies else 0})
-                rows.append({**base, "case_id": f"side_{n}", "group": "enemy_side",
-                             "instruction": "Where is the nearest enemy?", "options": ["left", "centre", "right", "none"],
-                             "label": ["left", "centre", "right", "none"].index(side(enemies))})
-                rows.append({**base, "case_id": f"count_{n}", "group": "enemy_count", "question_type": "score",
-                             "instruction": "How many enemies are on screen?", "options": ["none", "one", "several"],
-                             "label": min(len(enemies), 2)})
-                rows.append({**base, "case_id": f"action_{n}", "group": "expert_action",
-                             "instruction": "Which button should the player press now?", "options": BUTTONS,
-                             "label": BUTTONS.index(action)})
+                rows.append(
+                    {
+                        **base,
+                        "case_id": f"visible_{n}",
+                        "group": "enemy_visible",
+                        "question_type": "noul",
+                        "instruction": "An enemy is visible on screen.",
+                        "options": ["false", "true"],
+                        "label": 1 if enemies else 0,
+                    }
+                )
+                rows.append(
+                    {
+                        **base,
+                        "case_id": f"side_{n}",
+                        "group": "enemy_side",
+                        "instruction": "Where is the nearest enemy?",
+                        "options": ["left", "centre", "right", "none"],
+                        "label": ["left", "centre", "right", "none"].index(side(enemies)),
+                    }
+                )
+                rows.append(
+                    {
+                        **base,
+                        "case_id": f"count_{n}",
+                        "group": "enemy_count",
+                        "question_type": "score",
+                        "instruction": "How many enemies are on screen?",
+                        "options": ["none", "one", "several"],
+                        "label": min(len(enemies), 2),
+                    }
+                )
+                rows.append(
+                    {
+                        **base,
+                        "case_id": f"action_{n}",
+                        "group": "expert_action",
+                        "instruction": "Which button should the player press now?",
+                        "options": BUTTONS,
+                        "label": BUTTONS.index(action),
+                    }
+                )
                 n += 1
             # the expert plays, with a little noise so the frames are not all the same corridor
             chosen = action if rng.random() > 0.15 else rng.choice(BUTTONS)
@@ -148,7 +213,9 @@ def main() -> None:
         out_dir.rename(final)
         out_dir = final
     suite = out_dir / f"{name}.jsonl"
-    suite.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
+    suite.write_text(
+        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8"
+    )
     groups: dict[str, int] = {}
     for r in rows:
         groups[r["group"]] = groups.get(r["group"], 0) + 1
@@ -159,18 +226,26 @@ def main() -> None:
         "cases": len(rows),
         "groups": groups,
         "question_type": "mixed",
-        "images_sha256": {f: hashlib.sha256((out_dir / f).read_bytes()).hexdigest() for f in frames},
-        "source": (f"tools/record_doom_suite.py on ViZDoom {vzd.__version__}, scenario {SCENARIO}, seeds {seeds}, "
-                   f"{args.steps} steps per seed, one frame every {args.every} steps, 640x480 RGB"),
-        "construction": ("frames recorded while jevlike's labels-buffer expert plays (with 15% random actions); every "
-                         "label derives from the engine: the labels buffer for enemy presence, side and count, the "
-                         "expert rule for the button. Frames are not committed; regenerate with the same command and "
-                         "the manifest checks their hashes"),
+        "images_sha256": {
+            f: hashlib.sha256((out_dir / f).read_bytes()).hexdigest() for f in frames
+        },
+        "source": (
+            f"tools/record_doom_suite.py on ViZDoom {vzd.__version__}, scenario {SCENARIO}, seeds {seeds}, "
+            f"{args.steps} steps per seed, one frame every {args.every} steps, 640x480 RGB"
+        ),
+        "construction": (
+            "frames recorded while jevlike's labels-buffer expert plays (with 15% random actions); every "
+            "label derives from the engine: the labels buffer for enemy presence, side and count, the "
+            "expert rule for the button. Frames are not committed; regenerate with the same command and "
+            "the manifest checks their hashes"
+        ),
         "expected_answers_by": "the game engine (labels buffer) and a fixed expert rule",
         "measures": "perception of a game frame: presence, side and count of enemies; agreement with a scripted policy",
         "known_results": "none at authoring time",
     }
-    (out_dir / f"{name}.manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (out_dir / f"{name}.manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
     print(name, len(rows), "cases", len(frames), "frames", manifest["sha256"][:16])
 
 

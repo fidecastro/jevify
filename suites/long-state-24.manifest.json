@@ -1,0 +1,18 @@
+{
+  "name": "long-state-24",
+  "file": "long-state-24.jsonl",
+  "sha256": "b090f3185e6632eeb6ebcb7750a4f5b667cd8c17f72e283a9b77d4dd38e85ecf",
+  "cases": 24,
+  "groups": {
+    "2k": 6,
+    "8k": 6,
+    "16k": 6,
+    "32k": 6
+  },
+  "question_type": "choice",
+  "source": "authored for jevify on 2026-09-20 by tools/author_long_state.py (deterministic, seed 20260920)",
+  "construction": "one of two decisive customer lines (switch to monthly; cancel) inserted at the start, middle or end of a filler support transcript of about 2k, 8k, 16k or 32k tokens; groups are the lengths. A backend whose context is shorter than the state records an error, which is the finding.",
+  "expected_answers_by": "human (the author of the cases)",
+  "measures": "whether a decisive line survives a long state at each position and length; not calibration",
+  "known_results": "none at authoring time"
+}

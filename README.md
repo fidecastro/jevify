@@ -55,32 +55,77 @@ Four model kinds plug into the same backend port (ADR-0002):
 | `embedding` | A `/v1/embeddings` route, or a model in-process | Qwen3-Embedding-0.6B in-process; the route against fakes only |
 | `encoder` | A sequence-classification NLI head in-process (`nli` layout) | facebook/bart-large-mnli in-process |
 
-The same 29-case policy suite, one run each, five recipes across the four
-kinds. Every row links
-to the scorecard that records the command, the recipe hash, the suite hash
-and the raw file's digest:
+Three frozen suites, every recipe on each, one run each. Every row links to
+the scorecard that records the command, the recipe hash, the suite hash and
+the raw file's digest. Latencies are one machine's, one day's, per question.
+
+**policy-29**, the diagnostic suite carried from decision-poc (choice only):
 
 | Recipe | Kind | Accuracy | Median latency | Scorecard |
 |---|---|---|---|---|
-| `deepseek-v4-flash-vision-exp-keys.vllm` | endpoint | 28/29 | 428 ms | [summary](docs/evidence/deepseek-v4-flash-vision-exp-keys.vllm--policy-29.md) |
+| `gemma-4-e4b-it.llamacpp` | endpoint | 29/29 | 28 ms | [summary](docs/evidence/gemma-4-e4b-it.llamacpp--policy-29.md) |
 | `ternary-bonsai-2-27b.llamacpp` | endpoint | 29/29 | 99 ms | [summary](docs/evidence/ternary-bonsai-2-27b.llamacpp--policy-29.md) |
+| `deepseek-v4-flash-vision-exp-keys.vllm` | endpoint | 28/29 | 428 ms | [summary](docs/evidence/deepseek-v4-flash-vision-exp-keys.vllm--policy-29.md) |
 | `qwen3-vl-reranker-8b.llamacpp` | endpoint | 26/29 | 68 ms | [summary](docs/evidence/qwen3-vl-reranker-8b.llamacpp--policy-29.md) |
+| `qwen3-vl-reranker-2b.llamacpp` | endpoint | 21/29 | 49 ms | [summary](docs/evidence/qwen3-vl-reranker-2b.llamacpp--policy-29.md) |
 | `qwen3-embedding-0.6b.local` | embedding | 19/29 | 8 ms | [summary](docs/evidence/qwen3-embedding-0.6b.local--policy-29.md) |
 | `bart-large-mnli.local` | encoder | 15/29 | 7 ms | [summary](docs/evidence/bart-large-mnli.local--policy-29.md) |
 
-DeepSeek has scored 28/29 and 29/29 on separate runs; the case it misses
-sits at the policy boundary and flips between runs. Twenty-nine cases rank
-models; they do not measure calibration, which is why
-`jevify calibrate` refused to write a table for any of them
-([evidence](docs/evidence/deepseek-v4-flash-vision-exp-keys.vllm--calibration.md)).
-Latencies are one machine's, one day's, and recorded as such.
+**policy-hard-52**, written for jevify before any model saw it: instruction
+flips, negations, two-threshold policies, distractors, and long transcripts
+with the decisive line buried (`tools/author_policy_hard.py`):
+
+| Recipe | Accuracy | Flips | Thresholds | Long states | Scorecard |
+|---|---|---|---|---|---|
+| `deepseek-v4-flash-vision-exp-keys.vllm` | 47/52 | 6/9 | 16/18 | 12/12 | [summary](docs/evidence/deepseek-v4-flash-vision-exp-keys.vllm--policy-hard-52.md) |
+| `ternary-bonsai-2-27b.llamacpp` | 46/52 | 6/9 | 15/18 | 12/12 | [summary](docs/evidence/ternary-bonsai-2-27b.llamacpp--policy-hard-52.md) |
+| `gemma-4-e4b-it.llamacpp` | 45/52 | 5/9 | 16/18 | 12/12 | [summary](docs/evidence/gemma-4-e4b-it.llamacpp--policy-hard-52.md) |
+| `qwen3-vl-reranker-2b.llamacpp` | 34/52 | 3/9 | 9/18 | 12/12 | [summary](docs/evidence/qwen3-vl-reranker-2b.llamacpp--policy-hard-52.md) |
+| `bart-large-mnli.local` | 28/52 | 3/9 | 8/18 | 12/12 | [summary](docs/evidence/bart-large-mnli.local--policy-hard-52.md) |
+| `qwen3-embedding-0.6b.local` | 24/52 | 3/9 | 8/18 | 6/12 | [summary](docs/evidence/qwen3-embedding-0.6b.local--policy-hard-52.md) |
+
+Every generative model misses the same inverted instructions ("the action the
+customer asked NOT to take"), the weakness decision-poc found a year of
+models ago. Negations in the state and long transcripts are solved.
+
+**doom-frames-41**, 164 questions over 41 ViZDoom screenshots at 640×480,
+every label from the engine's labels buffer or a fixed expert rule
+(`tools/record_doom_suite.py`; frames regenerate byte-identically and their
+hashes are pinned in the manifest):
+
+| Recipe | Enemy visible | Enemy count | Enemy side | Expert button | Median latency | Scorecard |
+|---|---|---|---|---|---|---|
+| `deepseek-v4-flash-vision-exp-keys.vllm` | 0.88 | 0.83 | 0.56 | 0.24 | 672 ms | [summary](docs/evidence/deepseek-v4-flash-vision-exp-keys.vllm--doom-frames-41.md) |
+| `ternary-bonsai-2-27b.llamacpp` | 0.93 | 0.85 | 0.37 | 0.24 | 97 ms | [summary](docs/evidence/ternary-bonsai-2-27b.llamacpp--doom-frames-41.md) |
+| `gemma-4-e4b-it.llamacpp` | 0.78 | 0.49 | 0.41 | 0.20 | 36 ms | [summary](docs/evidence/gemma-4-e4b-it.llamacpp--doom-frames-41.md) |
+| `qwen3-vl-reranker-2b.llamacpp` | 0.10 | 0.56 | 0.41 | 0.10 | 64 ms | [summary](docs/evidence/qwen3-vl-reranker-2b.llamacpp--doom-frames-41.md) |
+
+Presence and count are perception; the expert button asks the model to agree
+with a rule it is not told, so that column is a floor for a scripted policy,
+not a skill score. Enemy side is where the vision models diverge most.
+
+**long-state-24**, one decisive customer line at the start, middle or end of
+a filler transcript of about 2k, 8k, 16k or 32k tokens
+(`tools/author_long_state.py`). This is the suite the warm step exists for:
+the state is sent once, and each question then costs only its own tokens.
+
+| Recipe | 2k | 8k | 16k | 32k | Warm at 32k | Per question after warm | Scorecard |
+|---|---|---|---|---|---|---|---|
+| `deepseek-v4-flash-vision-exp-keys.vllm` | 6/6 | 6/6 | 6/6 | 6/6 | 20 s | 359 ms, 31,232 tokens cached | [summary](docs/evidence/deepseek-v4-flash-vision-exp-keys.vllm--long-state-24.md) |
+| `ternary-bonsai-2-27b.llamacpp` | 6/6 | 6/6 | 6/6 | 6/6 | 13 s | 136 ms, 33,946 tokens cached | [summary](docs/evidence/ternary-bonsai-2-27b.llamacpp--long-state-24.md) |
+| `gemma-4-e4b-it.llamacpp` | 6/6 | context | context | context | | 37 ms at 2k | [summary](docs/evidence/gemma-4-e4b-it.llamacpp--long-state-24.md) |
+
+"context" means the launch's slot context was shorter than the state and the
+case recorded a context error, which is the finding for that launch (Gemma
+was launched with two 8k slots; Bonsai first ran with two 16k slots and
+failed 16k and 32k the same way, then with one 64k slot for the row above). No model that could read the state missed
+the decisive line at any position.
 
 ## Not yet
 
 Named here so that nobody has to discover it: the direct-call control (no
-"faster than generation" claim until it exists); suites beyond `policy-29`
-(instruction flips, multimodal); the rerank kind and the embedding route
-against a live server; Laya's marker-slot layout for the encoder kind; the
+"faster than generation" claim until it exists); a closed-loop Doom player; the rerank kind and
+the embedding route against a live server; Laya's marker-slot layout for the encoder kind; the
 grammar rung on the PrismML llama.cpp fork (accepted, but it does not
 constrain the reported probabilities there); Windows. Choice menus on the endpoint kind are bounded by the
 single-token identifier alphabet the probe verifies (26 on the DeepSeek

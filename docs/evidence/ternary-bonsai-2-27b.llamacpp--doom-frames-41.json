@@ -1,14 +1,14 @@
 {
   "recipe": "recipes/ternary-bonsai-2-27b.llamacpp.yaml",
   "recipe_stem": "ternary-bonsai-2-27b.llamacpp",
-  "recipe_hash": "2234882d71101fb35da234305a3dc7ab654feffbf0d0ce8c55079d27cef97c40",
+  "recipe_hash": "9227707d89f4a1282c042631e3b2eb11b3454de78ebd42e3c4d71286255882f0",
   "model": "ternary-bonsai-2-27b",
   "backend": {
     "kind": "endpoint",
     "dialect": "llamacpp",
     "version": "b1-9a9394a",
     "base_url": "http://127.0.0.1:8082/v1",
-    "probed_at": "2026-09-20T02:39:15+00:00"
+    "probed_at": "2026-09-20T04:14:52+00:00"
   },
   "suite": "doom-frames-41",
   "suite_file": "suites/doom-frames-41/doom-frames-41.jsonl",
@@ -16,7 +16,7 @@
   "expected_answers_by": "the game engine (labels buffer) and a fixed expert rule",
   "jevify_version": "0.1.0",
   "python": "3.14.7",
-  "run_at": "2026-09-20T04:05:08+00:00",
+  "run_at": "2026-09-20T04:21:01+00:00",
   "concurrency": 1,
   "command": "jevify eval recipes/ternary-bonsai-2-27b.llamacpp.yaml suites/doom-frames-41/doom-frames-41.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
   "controls": {
@@ -33,8 +33,8 @@
       "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
     }
   },
-  "raw_file": "ternary-bonsai-2-27b.llamacpp--doom-frames-41--20260920T040705Z.jsonl",
-  "raw_sha256": "aeac4735cd5a4941225cac9f5840a74fc4eda9a8de3c993c6ef71a1c4fdb6b2f",
+  "raw_file": "ternary-bonsai-2-27b.llamacpp--doom-frames-41--20260920T042258Z.jsonl",
+  "raw_sha256": "85b1ea4ad4c63be281b8368b412ca26cf2275f152201796bbaefa44e65bb3e09",
   "metrics": {
     "cases": 164,
     "scored": 164,
@@ -65,13 +65,13 @@
     },
     "degraded": 0,
     "latency_ms": {
-      "median": 97.47109950694721,
-      "p95": 100.81884135870496,
-      "mean": 97.7358568295419
+      "median": 97.62571050669067,
+      "p95": 100.88529824861325,
+      "mean": 98.00756423859772
     },
     "warm_ms": {
-      "median": 167.11746399232652,
-      "p95": 232.4982437567087
+      "median": 166.8324895144906,
+      "p95": 232.3806779939332
     },
     "cached_token_share": 1.0
   },

@@ -1,14 +1,14 @@
 {
   "recipe": "recipes/ternary-bonsai-2-27b.llamacpp.yaml",
   "recipe_stem": "ternary-bonsai-2-27b.llamacpp",
-  "recipe_hash": "2234882d71101fb35da234305a3dc7ab654feffbf0d0ce8c55079d27cef97c40",
+  "recipe_hash": "9227707d89f4a1282c042631e3b2eb11b3454de78ebd42e3c4d71286255882f0",
   "model": "ternary-bonsai-2-27b",
   "backend": {
     "kind": "endpoint",
     "dialect": "llamacpp",
     "version": "b1-9a9394a",
     "base_url": "http://127.0.0.1:8082/v1",
-    "probed_at": "2026-09-20T02:39:15+00:00"
+    "probed_at": "2026-09-20T04:14:52+00:00"
   },
   "suite": "policy-hard-52",
   "suite_file": "suites/policy-hard-52.jsonl",
@@ -16,7 +16,7 @@
   "expected_answers_by": "human (the author of the cases)",
   "jevify_version": "0.1.0",
   "python": "3.14.7",
-  "run_at": "2026-09-20T03:52:10+00:00",
+  "run_at": "2026-09-20T04:20:14+00:00",
   "concurrency": 1,
   "command": "jevify eval recipes/ternary-bonsai-2-27b.llamacpp.yaml suites/policy-hard-52.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
   "controls": {
@@ -33,8 +33,8 @@
       "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
     }
   },
-  "raw_file": "ternary-bonsai-2-27b.llamacpp--policy-hard-52--20260920T035257Z.jsonl",
-  "raw_sha256": "e5b258d95716739fe42f6168a15eb51158f8dbcaa1f355d8a505886cf16eb6cd",
+  "raw_file": "ternary-bonsai-2-27b.llamacpp--policy-hard-52--20260920T042101Z.jsonl",
+  "raw_sha256": "2611e14cc9f176103b3c9d5af61796df33ec1c34cd3a0cfd09b8cf6ceaf9c62a",
   "metrics": {
     "cases": 52,
     "scored": 52,
@@ -67,13 +67,13 @@
     },
     "degraded": 0,
     "latency_ms": {
-      "median": 96.74880249076523,
-      "p95": 101.3545155612519,
-      "mean": 97.40400030680645
+      "median": 97.06180400098674,
+      "p95": 101.33064145775279,
+      "mean": 97.55223198030413
     },
     "warm_ms": {
-      "median": 140.81393850210588,
-      "p95": 652.5597686122637
+      "median": 141.66395699430723,
+      "p95": 656.4879471494351
     },
     "cached_token_share": 0.831305165300047
   },

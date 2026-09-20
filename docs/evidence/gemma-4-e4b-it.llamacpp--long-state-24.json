@@ -1,0 +1,197 @@
+{
+  "recipe": "recipes/gemma-4-e4b-it.llamacpp.yaml",
+  "recipe_stem": "gemma-4-e4b-it.llamacpp",
+  "recipe_hash": "22181ad02a27f7c7958d40132340cef25e7e9b0c1d32a068b330745a16054bad",
+  "model": "gemma-4-e4b-it",
+  "backend": {
+    "kind": "endpoint",
+    "dialect": "llamacpp",
+    "version": "b10809-5266f24da7",
+    "base_url": "http://127.0.0.1:8083/v1",
+    "probed_at": "2026-09-20T03:56:02+00:00"
+  },
+  "suite": "long-state-24",
+  "suite_file": "suites/long-state-24.jsonl",
+  "suite_sha256": "b090f3185e6632eeb6ebcb7750a4f5b667cd8c17f72e283a9b77d4dd38e85ecf",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T04:13:54+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/gemma-4-e4b-it.llamacpp.yaml suites/long-state-24.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence",
+  "raw_file": "gemma-4-e4b-it.llamacpp--long-state-24--20260920T041356Z.jsonl",
+  "raw_sha256": "9409aca15e0692e66b9bcdfc9d43bffabb372f81d7ac5db0cda6bfdce616b61f",
+  "metrics": {
+    "cases": 24,
+    "scored": 6,
+    "errors": 18,
+    "accuracy": 1.0,
+    "log_loss": 6.439837614527564e-06,
+    "brier": 1.2804198517144785e-10,
+    "ece": 6.4398024424150435e-06,
+    "groups": {
+      "2k": {
+        "cases": 6,
+        "accuracy": 1.0
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 36.94802901009098,
+      "p95": 38.316258243867196,
+      "mean": 37.171779501174264
+    },
+    "warm_ms": {
+      "median": 211.5261790168006,
+      "p95": 213.38736024335958
+    },
+    "cached_token_share": 0.9693560325684678
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 6,
+      "confidence": 0.9999935601975576,
+      "accuracy": 1.0
+    }
+  ],
+  "wrong": [],
+  "failed": [
+    {
+      "case_id": "8k_start_monthly",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (8565 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "8k_start_cancel",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (8611 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "8k_middle_monthly",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (8595 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "8k_middle_cancel",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (8609 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "8k_end_monthly",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (8568 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "8k_end_cancel",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (8595 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "16k_start_monthly",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (17133 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "16k_start_cancel",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (17180 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "16k_middle_monthly",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (17185 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "16k_middle_cancel",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (17173 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "16k_end_monthly",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (17167 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "16k_end_cancel",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (17161 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "32k_start_monthly",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (34190 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "32k_start_cancel",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (34260 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "32k_middle_monthly",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (34315 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "32k_middle_cancel",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (34262 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "32k_end_monthly",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (34128 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    },
+    {
+      "case_id": "32k_end_cancel",
+      "error": "ContextLimitError: POST http://127.0.0.1:8083/v1/chat/completions returned 400: request (34067 tokens) exceeds the available context size (8192 tokens), try increasing it"
+    }
+  ]
+}
