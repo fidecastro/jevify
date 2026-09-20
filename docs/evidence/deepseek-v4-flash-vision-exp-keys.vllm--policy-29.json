@@ -1,0 +1,135 @@
+{
+  "recipe": "recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml",
+  "recipe_stem": "deepseek-v4-flash-vision-exp-keys.vllm",
+  "recipe_hash": "35d32f480abf5a9ff2e3de2cbf9967658b58defd0706b44a349d118b784182f5",
+  "model": "deepseek-v4-flash-vision-exp-keys",
+  "backend": {
+    "kind": "endpoint",
+    "dialect": "vllm",
+    "version": "0.25.2.dev0+g752a3a504.d20260714",
+    "base_url": "http://192.168.2.20:8888/v1",
+    "probed_at": "2026-09-20T01:18:14+00:00"
+  },
+  "suite": "policy-29",
+  "suite_file": "suites/policy-29.jsonl",
+  "suite_sha256": "c59cb29f97e78e67472206dd544c833c65bf06632d7de093760daff627b78015",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T01:26:29+00:00",
+  "concurrency": 4,
+  "command": "jevify eval recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml suites/policy-29.jsonl --concurrency 4 --runs-dir runs --evidence-dir docs/evidence",
+  "raw_file": "deepseek-v4-flash-vision-exp-keys.vllm--policy-29--20260920T012635Z.jsonl",
+  "raw_sha256": "14b9f2755b000d8a9bb27201cb15ad0a5f97a7a731683825196da4f3cee06dca",
+  "metrics": {
+    "cases": 29,
+    "scored": 29,
+    "errors": 0,
+    "accuracy": 0.9655172413793104,
+    "log_loss": 0.08169730647941742,
+    "brier": 0.05645329260376681,
+    "ece": 0.03054288180016662,
+    "groups": {
+      "diagnostic": {
+        "cases": 23,
+        "accuracy": 0.9565217391304348
+      },
+      "original": {
+        "cases": 6,
+        "accuracy": 1.0
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 517.6380419870839,
+      "p95": 568.3916188019793,
+      "mean": 500.652407996501
+    },
+    "warm_ms": {
+      "median": 400.74064198415726,
+      "p95": 481.6007052140776
+    },
+    "cached_token_share": 0.0
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 29,
+      "confidence": 0.996060123179477,
+      "accuracy": 0.9655172413793104
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "diagnostic_6_pointwise_instruction_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.7131488635505553
+    }
+  ],
+  "failed": []
+}

@@ -1,0 +1,147 @@
+{
+  "recipe": "recipes/qwen3-vl-reranker-8b.llamacpp.yaml",
+  "recipe_stem": "qwen3-vl-reranker-8b.llamacpp",
+  "recipe_hash": "e0300306edb39b454ec6241526a0e7cd2348d7a0fce109f96da7bcb2b24e8e50",
+  "model": "qwen3-vl-reranker-8b",
+  "backend": {
+    "kind": "endpoint",
+    "dialect": "llamacpp",
+    "version": "b10809-5266f24da7",
+    "base_url": "http://127.0.0.1:8081/v1",
+    "probed_at": "2026-09-20T01:18:17+00:00"
+  },
+  "suite": "policy-29",
+  "suite_file": "suites/policy-29.jsonl",
+  "suite_sha256": "c59cb29f97e78e67472206dd544c833c65bf06632d7de093760daff627b78015",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T01:26:40+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/qwen3-vl-reranker-8b.llamacpp.yaml suites/policy-29.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence",
+  "raw_file": "qwen3-vl-reranker-8b.llamacpp--policy-29--20260920T012642Z.jsonl",
+  "raw_sha256": "3f9507debd89aa05392abdd74cb4d66d988b1d96db768df94f282a2044043c0d",
+  "metrics": {
+    "cases": 29,
+    "scored": 29,
+    "errors": 0,
+    "accuracy": 0.896551724137931,
+    "log_loss": 0.3392598080367298,
+    "brier": 0.17729104972661158,
+    "ece": 0.1729744181979856,
+    "groups": {
+      "diagnostic": {
+        "cases": 23,
+        "accuracy": 0.8695652173913043
+      },
+      "original": {
+        "cases": 6,
+        "accuracy": 1.0
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 69.44529598695226,
+      "p95": 73.52979658753611,
+      "mean": 66.89127613609689
+    },
+    "warm_ms": {
+      "median": 15.15408800332807,
+      "p95": 20.498118799878284
+    },
+    "cached_token_share": 0.3150764466808593
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 1,
+      "confidence": 0.48663363181146446,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 2,
+      "confidence": 0.5586999618486919,
+      "accuracy": 0.5
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 6,
+      "confidence": 0.6603992959494973,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 5,
+      "confidence": 0.7569920199693971,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 3,
+      "confidence": 0.836773610860178,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 12,
+      "confidence": 0.9724917733631031,
+      "accuracy": 0.9166666666666666
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "diagnostic_20_amount_76_original",
+      "label": "Request manager approval.",
+      "selected": "Approve automatically.",
+      "confidence": 0.14492159188629206
+    },
+    {
+      "case_id": "diagnostic_22_amount_100_original",
+      "label": "Request manager approval.",
+      "selected": "Approve automatically.",
+      "confidence": 0.09301771684119375
+    },
+    {
+      "case_id": "diagnostic_25_instruction_flip",
+      "label": "Cancel the subscription.",
+      "selected": "Keep the subscription active.",
+      "confidence": 0.6232291345575263
+    }
+  ],
+  "failed": []
+}

@@ -1,0 +1,16 @@
+{
+  "name": "policy-29",
+  "file": "policy-29.jsonl",
+  "sha256": "c59cb29f97e78e67472206dd544c833c65bf06632d7de093760daff627b78015",
+  "cases": 29,
+  "groups": {
+    "original": 6,
+    "diagnostic": 23
+  },
+  "question_type": "choice",
+  "source": "fidecastro/decision-poc examples/scaling-suite.jsonl, carried over verbatim on 2026-09-20",
+  "construction": "six hand-written policy and negation cases plus 23 follow-up probes (cancellation wording, expense amounts at a policy boundary, instruction inversion, a retrieval control); the probes were written after observing errors, so this is a diagnostic suite, not an independent benchmark",
+  "expected_answers_by": "human (the author of the cases)",
+  "measures": "agreement with the author's intended action; not calibration (too few independent cases)",
+  "known_results": "decision-poc COMPARISON_RESULTS.md: Qwen3-Reranker-4B 28/29, Qwen3-Embedding-4B 28/29, Qwen3-4B yes/no readout 27/29, Qwen3-Reranker-0.6B 14/29; every model missed the inverted instruction (diagnostic_25_instruction_flip)"
+}

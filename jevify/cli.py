@@ -26,6 +26,7 @@ from jevify.domain.questions import (
     ScoreQuestion,
     State,
 )
+from jevify.evaluation.suites import SuiteError
 from jevify.ports.backend import BackendError
 from jevify.recipes import RecipeError, apply_probe, load_recipe, recipe_hash
 
@@ -93,6 +94,20 @@ def build_parser() -> argparse.ArgumentParser:
         default="JEVIFY_API_KEY",
         help="env var holding the bearer key clients must send (unset = no check)",
     )
+    ev = commands.add_parser(
+        "eval", help="run a recipe against a frozen suite and write a scorecard"
+    )
+    ev.add_argument("recipe", type=Path)
+    ev.add_argument(
+        "suite", type=Path, help="suite JSONL file; its .manifest.json must sit beside it"
+    )
+    ev.add_argument("--concurrency", type=int, default=1, help="cases evaluated at once")
+    ev.add_argument(
+        "--runs-dir", type=Path, default=Path("runs"), help="raw per-decision output (git-ignored)"
+    )
+    ev.add_argument(
+        "--evidence-dir", type=Path, default=Path("docs/evidence"), help="committed summaries"
+    )
     probe = commands.add_parser(
         "probe", help="measure a backend and write its capabilities into the recipe"
     )
@@ -122,6 +137,31 @@ def run_serve(args: argparse.Namespace) -> int:
         flush=True,
     )
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+    return 0
+
+
+def run_eval(args: argparse.Namespace) -> int:
+    from jevify.compose import build_engine
+    from jevify.evaluation.scorecard import evaluate_to_files
+    from jevify.evaluation.suites import load_suite
+
+    recipe = load_recipe(args.recipe)
+    suite = load_suite(args.suite)
+    command = (
+        f"jevify eval {args.recipe} {args.suite} --concurrency {args.concurrency}"
+        f" --runs-dir {args.runs_dir} --evidence-dir {args.evidence_dir}"
+    )
+    report = evaluate_to_files(
+        build_engine(recipe),
+        recipe,
+        args.recipe,
+        suite,
+        runs_dir=args.runs_dir,
+        evidence_dir=args.evidence_dir,
+        concurrency=max(1, args.concurrency),
+        command=command,
+    )
+    print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -241,7 +281,7 @@ def run_ask(args: argparse.Namespace) -> int:
     return 0
 
 
-COMMANDS = {"ask": run_ask, "probe": run_probe, "serve": run_serve}
+COMMANDS = {"ask": run_ask, "probe": run_probe, "serve": run_serve, "eval": run_eval}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -252,7 +292,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     try:
         return COMMANDS[args.command](args)
-    except (UsageError, RecipeError, BackendError) as exc:
+    except (UsageError, RecipeError, BackendError, SuiteError) as exc:
         print(f"jevify: {exc}", file=sys.stderr)
         return 1
 
