@@ -1,0 +1,19 @@
+{
+  "name": "policy-hard-52",
+  "file": "policy-hard-52.jsonl",
+  "sha256": "8e04af62c922c215f5575e4a985a2d948fcb7c023133bd8d2576633ae7c1e545",
+  "cases": 52,
+  "groups": {
+    "flip": 9,
+    "negation": 8,
+    "threshold": 18,
+    "distractor": 5,
+    "long": 12
+  },
+  "question_type": "choice",
+  "source": "authored for jevify on 2026-09-20 by tools/author_policy_hard.py (deterministic, seed 20260920)",
+  "construction": "five groups written before any model saw them: instruction flips (the instruction inverts the natural reading of a fixed state), negations in the state, two-threshold policies with interacting conditions, distractors (the wrong option's keyword is loud in the state), and long ticket transcripts with the decisive line at the start, middle or end of 40 or 120 filler turns. Append-only after the first scored run; the hash freezes the file.",
+  "expected_answers_by": "human (the author of the cases)",
+  "measures": "agreement with the intended action per group; not calibration",
+  "known_results": "none at authoring time"
+}

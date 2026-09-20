@@ -1,0 +1,351 @@
+{
+  "recipe": "recipes/bart-large-mnli.local.yaml",
+  "recipe_stem": "bart-large-mnli.local",
+  "recipe_hash": "cb60929973ae1fb7e08ebe0c8cafca95922b414fa26c3aaa1e5b3646482f666a",
+  "model": "bart-large-mnli",
+  "backend": {
+    "kind": "encoder",
+    "dialect": null,
+    "version": null,
+    "base_url": null,
+    "probed_at": "2026-09-20T02:06:30+00:00"
+  },
+  "suite": "policy-hard-52",
+  "suite_file": "suites/policy-hard-52.jsonl",
+  "suite_sha256": "8e04af62c922c215f5575e4a985a2d948fcb7c023133bd8d2576633ae7c1e545",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T03:54:48+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/bart-large-mnli.local.yaml suites/policy-hard-52.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 46,
+      "agreement_with_label": 0.34782608695652173,
+      "failed": [
+        {
+          "case_id": "long_1",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1611 tokens)"
+        },
+        {
+          "case_id": "long_2",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1630 tokens)"
+        },
+        {
+          "case_id": "long_5",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1581 tokens)"
+        },
+        {
+          "case_id": "long_6",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1617 tokens)"
+        },
+        {
+          "case_id": "long_9",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1588 tokens)"
+        },
+        {
+          "case_id": "long_10",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1698 tokens)"
+        }
+      ],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 46,
+      "same_choice": 1.0,
+      "failed": [
+        {
+          "case_id": "long_2",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1611 tokens)"
+        },
+        {
+          "case_id": "long_3",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1630 tokens)"
+        },
+        {
+          "case_id": "long_6",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1581 tokens)"
+        },
+        {
+          "case_id": "long_7",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1617 tokens)"
+        },
+        {
+          "case_id": "long_10",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1588 tokens)"
+        },
+        {
+          "case_id": "long_11",
+          "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1698 tokens)"
+        }
+      ],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "bart-large-mnli.local--policy-hard-52--20260920T035453Z.jsonl",
+  "raw_sha256": "a51cb2dc857b44aa7876427615e7de6174eb9c05f969ab23f3d58cc463bdebbe",
+  "metrics": {
+    "cases": 52,
+    "scored": 46,
+    "errors": 6,
+    "accuracy": 0.5434782608695652,
+    "log_loss": 2.2926228097325008,
+    "brier": 0.7051831162728854,
+    "ece": 0.3055166600257586,
+    "groups": {
+      "distractor": {
+        "cases": 5,
+        "accuracy": 0.2
+      },
+      "flip": {
+        "cases": 9,
+        "accuracy": 0.3333333333333333
+      },
+      "long": {
+        "cases": 6,
+        "accuracy": 1.0
+      },
+      "negation": {
+        "cases": 8,
+        "accuracy": 0.875
+      },
+      "threshold": {
+        "cases": 18,
+        "accuracy": 0.4444444444444444
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 9.410310987732373,
+      "p95": 48.39769400132354,
+      "mean": 67.31545156356373
+    }
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 6,
+      "confidence": 0.566260389754981,
+      "accuracy": 0.3333333333333333
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 3,
+      "confidence": 0.6664534917172471,
+      "accuracy": 0.3333333333333333
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 5,
+      "confidence": 0.7454364163385785,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 9,
+      "confidence": 0.8477965146625697,
+      "accuracy": 0.6666666666666666
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 23,
+      "confidence": 0.9695431666890109,
+      "accuracy": 0.6956521739130435
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "flip_1",
+      "label": "Cancel the subscription.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.999980070042609
+    },
+    {
+      "case_id": "flip_2",
+      "label": "Cancel the subscription.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.999980070042609
+    },
+    {
+      "case_id": "flip_3",
+      "label": "Keep promotional emails enabled.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.999980070042609
+    },
+    {
+      "case_id": "flip_5",
+      "label": "Technical support",
+      "selected": "Billing and refunds",
+      "confidence": 0.11859046828470754
+    },
+    {
+      "case_id": "flip_6",
+      "label": "Sales",
+      "selected": "Billing and refunds",
+      "confidence": 0.11859046828470754
+    },
+    {
+      "case_id": "flip_8",
+      "label": "Angry",
+      "selected": "Grateful",
+      "confidence": 0.9984022245396299
+    },
+    {
+      "case_id": "negation_3",
+      "label": "Keep the order as delivered.",
+      "selected": "Cancel the order.",
+      "confidence": 0.8864946576810614
+    },
+    {
+      "case_id": "threshold_0",
+      "label": "Approve automatically.",
+      "selected": "Request director approval.",
+      "confidence": 0.31918447417143503
+    },
+    {
+      "case_id": "threshold_1",
+      "label": "Approve automatically.",
+      "selected": "Request director approval.",
+      "confidence": 0.08040611740951153
+    },
+    {
+      "case_id": "threshold_2",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.39955122616903926
+    },
+    {
+      "case_id": "threshold_3",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.550296067880855
+    },
+    {
+      "case_id": "threshold_8",
+      "label": "Approve automatically.",
+      "selected": "Request director approval.",
+      "confidence": 0.3645742243884649
+    },
+    {
+      "case_id": "threshold_9",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.38101397064708353
+    },
+    {
+      "case_id": "threshold_11",
+      "label": "Issue store credit.",
+      "selected": "Grant a refund.",
+      "confidence": 0.7305229579901531
+    },
+    {
+      "case_id": "threshold_12",
+      "label": "Decline the request.",
+      "selected": "Grant a refund.",
+      "confidence": 0.20658689624658766
+    },
+    {
+      "case_id": "threshold_13",
+      "label": "Decline the request.",
+      "selected": "Grant a refund.",
+      "confidence": 0.32394254620161544
+    },
+    {
+      "case_id": "threshold_16",
+      "label": "Decline the request.",
+      "selected": "Grant a refund.",
+      "confidence": 0.6286267039066376
+    },
+    {
+      "case_id": "distractor_0",
+      "label": "Technical support",
+      "selected": "Sales",
+      "confidence": 0.2731055901109085
+    },
+    {
+      "case_id": "distractor_1",
+      "label": "Sales",
+      "selected": "Technical support",
+      "confidence": 0.9351464899206788
+    },
+    {
+      "case_id": "distractor_3",
+      "label": "Grateful",
+      "selected": "Angry",
+      "confidence": 0.5486705108374678
+    },
+    {
+      "case_id": "distractor_4",
+      "label": "Approve automatically.",
+      "selected": "Request director approval.",
+      "confidence": 0.24304068922170863
+    }
+  ],
+  "failed": [
+    {
+      "case_id": "long_2",
+      "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1611 tokens)"
+    },
+    {
+      "case_id": "long_3",
+      "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1630 tokens)"
+    },
+    {
+      "case_id": "long_6",
+      "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1581 tokens)"
+    },
+    {
+      "case_id": "long_7",
+      "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1617 tokens)"
+    },
+    {
+      "case_id": "long_10",
+      "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1588 tokens)"
+    },
+    {
+      "case_id": "long_11",
+      "error": "BackendError: input exceeds the recipe's local.max_tokens=1024 (1698 tokens)"
+    }
+  ]
+}

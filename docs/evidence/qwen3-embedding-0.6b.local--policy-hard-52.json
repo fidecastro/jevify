@@ -1,0 +1,318 @@
+{
+  "recipe": "recipes/qwen3-embedding-0.6b.local.yaml",
+  "recipe_stem": "qwen3-embedding-0.6b.local",
+  "recipe_hash": "b97847c77cd0358d834f87e6d5cbd8ede7bf8a64dd22f71d1434e77cf5d898c0",
+  "model": "qwen3-embedding-0.6b",
+  "backend": {
+    "kind": "embedding",
+    "dialect": null,
+    "version": null,
+    "base_url": null,
+    "probed_at": "2026-09-20T02:02:30+00:00"
+  },
+  "suite": "policy-hard-52",
+  "suite_file": "suites/policy-hard-52.jsonl",
+  "suite_sha256": "8e04af62c922c215f5575e4a985a2d948fcb7c023133bd8d2576633ae7c1e545",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T03:54:44+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/qwen3-embedding-0.6b.local.yaml suites/policy-hard-52.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 52,
+      "agreement_with_label": 0.4423076923076923,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 52,
+      "same_choice": 1.0,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "qwen3-embedding-0.6b.local--policy-hard-52--20260920T035448Z.jsonl",
+  "raw_sha256": "f6abd8687981cbfc798cec2b24562d59434dcf3276af8b8023cba4a21967e001",
+  "metrics": {
+    "cases": 52,
+    "scored": 52,
+    "errors": 0,
+    "accuracy": 0.46153846153846156,
+    "log_loss": 1.2011077584732497,
+    "brier": 0.6961303871475588,
+    "ece": 0.28373595927080403,
+    "groups": {
+      "distractor": {
+        "cases": 5,
+        "accuracy": 0.6
+      },
+      "flip": {
+        "cases": 9,
+        "accuracy": 0.3333333333333333
+      },
+      "long": {
+        "cases": 12,
+        "accuracy": 0.5
+      },
+      "negation": {
+        "cases": 8,
+        "accuracy": 0.5
+      },
+      "threshold": {
+        "cases": 18,
+        "accuracy": 0.4444444444444444
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 9.517154001514427,
+      "p95": 32.11297944217219,
+      "mean": 69.1530719772205
+    }
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 6,
+      "confidence": 0.378679853258878,
+      "accuracy": 0.3333333333333333
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 8,
+      "confidence": 0.44612643637123606,
+      "accuracy": 0.25
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 3,
+      "confidence": 0.5432877789530002,
+      "accuracy": 0.3333333333333333
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 1,
+      "confidence": 0.6700036468748602,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 7,
+      "confidence": 0.7290704948166166,
+      "accuracy": 0.2857142857142857
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 19,
+      "confidence": 0.8522416977635986,
+      "accuracy": 0.42105263157894735
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 8,
+      "confidence": 0.9178457674562721,
+      "accuracy": 1.0
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "flip_1",
+      "label": "Cancel the subscription.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.3640469761302403
+    },
+    {
+      "case_id": "flip_2",
+      "label": "Cancel the subscription.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.530096254020661
+    },
+    {
+      "case_id": "flip_3",
+      "label": "Keep promotional emails enabled.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.6311809762877281
+    },
+    {
+      "case_id": "flip_5",
+      "label": "Technical support",
+      "selected": "Billing and refunds",
+      "confidence": 0.46513008571118186
+    },
+    {
+      "case_id": "flip_6",
+      "label": "Sales",
+      "selected": "Billing and refunds",
+      "confidence": 0.5060203408689131
+    },
+    {
+      "case_id": "flip_8",
+      "label": "Angry",
+      "selected": "Grateful",
+      "confidence": 0.3020589047907116
+    },
+    {
+      "case_id": "negation_1",
+      "label": "Reverse the duplicate charge only.",
+      "selected": "Refund the original charge only.",
+      "confidence": 0.016124445486004557
+    },
+    {
+      "case_id": "negation_2",
+      "label": "Cancel the order.",
+      "selected": "Reschedule delivery for Monday.",
+      "confidence": 0.1354656771387066
+    },
+    {
+      "case_id": "negation_3",
+      "label": "Keep the order as delivered.",
+      "selected": "Reschedule delivery for Monday.",
+      "confidence": 0.04735042205515372
+    },
+    {
+      "case_id": "negation_4",
+      "label": "Proceed with closing the account.",
+      "selected": "Withdraw the cancellation and keep the account open.",
+      "confidence": 0.16995417173843363
+    },
+    {
+      "case_id": "threshold_0",
+      "label": "Approve automatically.",
+      "selected": "Request director approval.",
+      "confidence": 0.026036557621783363
+    },
+    {
+      "case_id": "threshold_1",
+      "label": "Approve automatically.",
+      "selected": "Request director approval.",
+      "confidence": 0.015637466892730156
+    },
+    {
+      "case_id": "threshold_2",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.014313456484773224
+    },
+    {
+      "case_id": "threshold_3",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.03656716590436093
+    },
+    {
+      "case_id": "threshold_8",
+      "label": "Approve automatically.",
+      "selected": "Request director approval.",
+      "confidence": 0.004154058253395765
+    },
+    {
+      "case_id": "threshold_9",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.006910701276022113
+    },
+    {
+      "case_id": "threshold_11",
+      "label": "Issue store credit.",
+      "selected": "Grant a refund.",
+      "confidence": 0.5034422226778446
+    },
+    {
+      "case_id": "threshold_12",
+      "label": "Decline the request.",
+      "selected": "Grant a refund.",
+      "confidence": 0.6288562806822264
+    },
+    {
+      "case_id": "threshold_13",
+      "label": "Decline the request.",
+      "selected": "Grant a refund.",
+      "confidence": 0.47885551728813824
+    },
+    {
+      "case_id": "threshold_16",
+      "label": "Decline the request.",
+      "selected": "Grant a refund.",
+      "confidence": 0.6397003160108468
+    },
+    {
+      "case_id": "distractor_1",
+      "label": "Sales",
+      "selected": "Technical support",
+      "confidence": 0.04581415776118236
+    },
+    {
+      "case_id": "distractor_4",
+      "label": "Approve automatically.",
+      "selected": "Request director approval.",
+      "confidence": 0.01401123616009603
+    },
+    {
+      "case_id": "long_1",
+      "label": "Cancel the subscription.",
+      "selected": "Keep the subscription active and change the plan to monthly.",
+      "confidence": 0.44335354640915814
+    },
+    {
+      "case_id": "long_3",
+      "label": "Cancel the subscription.",
+      "selected": "Keep the subscription active and change the plan to monthly.",
+      "confidence": 0.422851600509352
+    },
+    {
+      "case_id": "long_5",
+      "label": "Cancel the subscription.",
+      "selected": "Keep the subscription active and change the plan to monthly.",
+      "confidence": 0.30120509041041665
+    },
+    {
+      "case_id": "long_7",
+      "label": "Cancel the subscription.",
+      "selected": "Keep the subscription active and change the plan to monthly.",
+      "confidence": 0.47460968289282635
+    },
+    {
+      "case_id": "long_9",
+      "label": "Cancel the subscription.",
+      "selected": "Keep the subscription active and change the plan to monthly.",
+      "confidence": 0.28488391145913194
+    },
+    {
+      "case_id": "long_11",
+      "label": "Cancel the subscription.",
+      "selected": "Keep the subscription active and change the plan to monthly.",
+      "confidence": 0.35120778773651606
+    }
+  ],
+  "failed": []
+}

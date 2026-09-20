@@ -1,0 +1,191 @@
+{
+  "recipe": "recipes/ternary-bonsai-2-27b.llamacpp.yaml",
+  "recipe_stem": "ternary-bonsai-2-27b.llamacpp",
+  "recipe_hash": "2234882d71101fb35da234305a3dc7ab654feffbf0d0ce8c55079d27cef97c40",
+  "model": "ternary-bonsai-2-27b",
+  "backend": {
+    "kind": "endpoint",
+    "dialect": "llamacpp",
+    "version": "b1-9a9394a",
+    "base_url": "http://127.0.0.1:8082/v1",
+    "probed_at": "2026-09-20T02:39:15+00:00"
+  },
+  "suite": "policy-hard-52",
+  "suite_file": "suites/policy-hard-52.jsonl",
+  "suite_sha256": "8e04af62c922c215f5575e4a985a2d948fcb7c023133bd8d2576633ae7c1e545",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T03:52:10+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/ternary-bonsai-2-27b.llamacpp.yaml suites/policy-hard-52.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 52,
+      "agreement_with_label": 0.3076923076923077,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 52,
+      "same_choice": 0.9423076923076923,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "ternary-bonsai-2-27b.llamacpp--policy-hard-52--20260920T035257Z.jsonl",
+  "raw_sha256": "e5b258d95716739fe42f6168a15eb51158f8dbcaa1f355d8a505886cf16eb6cd",
+  "metrics": {
+    "cases": 52,
+    "scored": 52,
+    "errors": 0,
+    "accuracy": 0.8846153846153846,
+    "log_loss": 0.298645708230009,
+    "brier": 0.16848445521981528,
+    "ece": 0.08086708592788631,
+    "groups": {
+      "distractor": {
+        "cases": 5,
+        "accuracy": 1.0
+      },
+      "flip": {
+        "cases": 9,
+        "accuracy": 0.6666666666666666
+      },
+      "long": {
+        "cases": 12,
+        "accuracy": 1.0
+      },
+      "negation": {
+        "cases": 8,
+        "accuracy": 1.0
+      },
+      "threshold": {
+        "cases": 18,
+        "accuracy": 0.8333333333333334
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 96.74880249076523,
+      "p95": 101.3545155612519,
+      "mean": 97.40400030680645
+    },
+    "warm_ms": {
+      "median": 140.81393850210588,
+      "p95": 652.5597686122637
+    },
+    "cached_token_share": 0.831305165300047
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 2,
+      "confidence": 0.5389462109297003,
+      "accuracy": 0.5
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 1,
+      "confidence": 0.6751903379916577,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 2,
+      "confidence": 0.7479177833067749,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 2,
+      "confidence": 0.8366833297957454,
+      "accuracy": 0.5
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 45,
+      "confidence": 0.9918485368483846,
+      "accuracy": 0.9555555555555556
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "flip_1",
+      "label": "Cancel the subscription.",
+      "selected": "Keep promotional emails enabled.",
+      "confidence": 0.356520612037885
+    },
+    {
+      "case_id": "flip_3",
+      "label": "Keep promotional emails enabled.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.8014751031455717
+    },
+    {
+      "case_id": "flip_5",
+      "label": "Technical support",
+      "selected": "Sales",
+      "confidence": 0.3327745229826755
+    },
+    {
+      "case_id": "threshold_2",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.3625297002671207
+    },
+    {
+      "case_id": "threshold_3",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.9315623457100757
+    },
+    {
+      "case_id": "threshold_9",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.5555097934421587
+    }
+  ],
+  "failed": []
+}
