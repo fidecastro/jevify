@@ -1,0 +1,61 @@
+schema_version: 1
+model:
+  name: ternary-bonsai-2-27b
+  kind: endpoint
+  revision: Ternary-Bonsai-2-27B-PQ2_0.gguf + Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf (qwen35 architecture, 64 layers, trained context 262144)
+endpoint:
+  base_url: http://127.0.0.1:8082/v1
+  dialect: llamacpp
+  timeout_s: 300
+template:
+  mode: messages
+  system: You answer typed questions about the state with a single token.
+  state: "State:\n{state}"
+  state_end: "\n\n"
+  # The GGUF's chat template opens a reasoning block unless enable_thinking is false
+  # (it also accepts reasoning_effort); the probe verifies the rendered tail.
+  kwargs:
+    enable_thinking: false
+  questions:
+    choice: "Question: {instructions}\nOptions:\n{options}\nAnswer with the identifier of the best option."
+    option_line: "{identifier}. {key}{description}"
+    description_sep: ": "
+    score: "Question: {instructions}\nLevels:\n{levels}\nAnswer with the identifier of the level that applies."
+    level_line: "{identifier}. {text}"
+    noul: "Question: {instructions}\nAnswer with exactly one word, yes or no."
+answers:
+  # Qwen-family tokenizer (gpt2 byte-level BPE): ids to be verified by the probe.
+  noul:
+    "true":
+      - { text: "yes" }
+      - { text: "Yes" }
+      - { text: " yes" }
+      - { text: " Yes" }
+    "false":
+      - { text: "no" }
+      - { text: "No" }
+      - { text: " no" }
+      - { text: " No" }
+  identifiers:
+    - [{ text: "A" }, { text: " A" }]
+    - [{ text: "B" }, { text: " B" }]
+    - [{ text: "C" }, { text: " C" }]
+    - [{ text: "D" }, { text: " D" }]
+    - [{ text: "E" }, { text: " E" }]
+    - [{ text: "F" }, { text: " F" }]
+    - [{ text: "G" }, { text: " G" }]
+    - [{ text: "H" }, { text: " H" }]
+    - [{ text: "I" }, { text: " I" }]
+    - [{ text: "J" }, { text: " J" }]
+readout:
+  rung: auto
+  top_k: 20
+  permutation: none
+provenance:
+  author: Felipe Infante de Castro
+  created: "2026-09-20"
+  status: draft
+  launch: "llama-server -m ~/Work/models/Ternary-Bonsai-2-27B-PQ2_0.gguf --mmproj ~/Work/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf -c 32768 -ngl 99 --parallel 2 --port 8082"
+  notes:
+    - "Unprobed: llama.cpp build 10809 (b5266f24d) refuses the GGUF, tensor output.weight has ggml type 142 (the ternary PQ2_0 format) and this build knows types 0 to 43. A build with PQ2_0 support is needed before the probe can run."
+    - "A general instruct vision model in chat mode: the third model class after the DeepSeek decoder on vLLM and the Qwen3-VL reranker in raw mode."

@@ -55,3 +55,30 @@ def test_guard_core_imports_no_adapters() -> None:
         "Core code must depend on jevify.ports, not on adapters or infrastructure. "
         "Wire infrastructure in jevify/compose.py. Offenders:\n  " + "\n  ".join(offenders)
     )
+
+
+def test_guard_classify_translation_never_touches_the_port() -> None:
+    """ADR-0003 D6: the classify route is a translation onto the Jev-shaped call, never a
+    second implementation; jevify/api/translate.py may import domain and schema only."""
+    path = PACKAGE / "api" / "translate.py"
+    offenders = [
+        name
+        for name in _imports(path)
+        if name.startswith("jevify.ports") or name.startswith("jevify.adapters")
+    ]
+    assert not offenders, (
+        "jevify/api/translate.py must translate to and from the domain only; "
+        f"it imports {offenders}"
+    )
+
+
+def test_guard_every_committed_recipe_loads() -> None:
+    """A recipe in recipes/ is a public artifact; a broken one is a broken build."""
+    from jevify.recipes import load_recipe
+
+    folder = PACKAGE.parent / "recipes"
+    paths = sorted(folder.glob("*.yaml"))
+    assert paths, "recipes/ must hold at least one recipe"
+    for path in paths:
+        recipe = load_recipe(path)
+        assert recipe.provenance.status in ("draft", "probed", "scored"), path

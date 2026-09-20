@@ -141,3 +141,98 @@ def jev_extension(evaluation: Evaluation, extra: Mapping[str, Any] | None = None
     if extra:
         payload.update(extra)
     return payload
+
+
+def classify_to_systemone(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """The convenience route (ADR-0003 D6): context plus categories to a Jev-shaped request.
+
+    `boolean` asks one noul per category; `choice` asks one choice over all categories;
+    `score` asks one score per category on the caller's levels. Categories may be a list of
+    names or a mapping of name to description.
+    """
+    context = payload.get("context")
+    if context is None:
+        raise ValueError("classify needs a context")
+    raw_categories = payload.get("categories") or {}
+    if isinstance(raw_categories, list):
+        categories: dict[str, str | None] = {str(name): None for name in raw_categories}
+    elif isinstance(raw_categories, Mapping):
+        categories = {str(k): (None if v is None else str(v)) for k, v in raw_categories.items()}
+    else:
+        raise ValueError("categories must be a list of names or a mapping of name to description")
+    if not categories:
+        raise ValueError("classify needs at least one category")
+    mode = payload.get("mode", "boolean")
+    instructions = payload.get("instructions")
+    questions: dict[str, Any] = {}
+    if mode == "boolean":
+        for name, description in categories.items():
+            statement = f"The context belongs to the category {name!r}"
+            if description:
+                statement += f" ({description})"
+            statement += "."
+            if instructions:
+                statement = f"{instructions} {statement}"
+            questions[name] = {"type": "noul", "instructions": statement}
+    elif mode == "choice":
+        questions["category"] = {
+            "type": "choice",
+            "instructions": instructions or "Which category does the context belong to?",
+            "criteria": dict(categories),
+        }
+    elif mode == "score":
+        levels = payload.get("levels")
+        if not isinstance(levels, list) or len(levels) < 2:
+            raise ValueError("score mode needs at least two ordered levels")
+        for name, description in categories.items():
+            statement = f"How strongly does the context match the category {name!r}"
+            if description:
+                statement += f" ({description})"
+            statement += "?"
+            if instructions:
+                statement = f"{instructions} {statement}"
+            questions[name] = {"type": "score", "instructions": statement, "criteria": list(levels)}
+    else:
+        raise ValueError(f"unknown mode {mode!r}; use boolean, choice or score")
+    request: dict[str, Any] = {
+        "state": context,
+        "model": str(payload.get("model") or "jevify"),
+        "questions": questions,
+    }
+    if payload.get("x_jevify"):
+        request["x_jevify"] = payload["x_jevify"]
+    return request
+
+
+def classify_results(
+    mode: str, categories: list[str], jev_answers: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Per-category results derived from the Jev-shaped answers (no second readout)."""
+    results: dict[str, Any] = {}
+    if mode == "choice":
+        answer = jev_answers["category"]
+        for name in categories:
+            probability = float(answer["probabilities"].get(name, 0.0))
+            results[name] = {
+                "probability": probability,
+                "decision": answer["choice"] == name,
+                "x_jevify": answer["x_jevify"],
+            }
+        return results
+    for name in categories:
+        answer = jev_answers[name]
+        if mode == "boolean":
+            probability = float(answer["noul"])
+            results[name] = {
+                "probability": probability,
+                "decision": probability >= 0.5,
+                "x_jevify": answer["x_jevify"],
+            }
+        else:
+            results[name] = {
+                "score": float(answer["score"]),
+                "legend": answer["legend"],
+                "probabilities": answer["probabilities"],
+                "x_jevify": answer["x_jevify"],
+            }
+    return results
