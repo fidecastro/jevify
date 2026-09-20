@@ -189,7 +189,7 @@ probe:
   - top_k
   - top_k_floor
   top_k_cap: null
-  logprobs_post_bias: null
+  logprobs_post_bias: false
   prefill_honored: null
   template_kwargs_honored: true
   token_ids_verified: true
@@ -259,18 +259,19 @@ probe:
   multi_token_answers: []
   cache:
     block_tokens: 256
-    first_ms: 278.1646329967771
-    second_ms: 276.86469798209146
+    first_ms: 283.61182898515835
+    second_ms: 280.5134649970569
     cached_tokens: 768
+    warm_prefix_tokens: 892
+    warm_reuse_tokens: 768
   fanout:
-    concurrency: 4
-    concurrent_ms: 628.7574839952867
-    sequential_ms: 1119.1557819838636
+    concurrency: 1
+    concurrent_ms: 803.7679640110582
+    sequential_ms: 1123.4637329762336
   slots: null
-  probed_at: '2026-09-20T01:48:17+00:00'
-  notes:
-  - 'logit_bias rejected: POST http://192.168.2.20:8888/v1/chat/completions returned 400: The min_p and
-    logit_bias sampling parameters are not yet supported with speculative decoding.'
+  probed_at: '2026-09-20T03:48:15+00:00'
+  notes: []
+  image_marker: null
 provenance:
   author: Felipe Infante de Castro
   created: '2026-09-19'

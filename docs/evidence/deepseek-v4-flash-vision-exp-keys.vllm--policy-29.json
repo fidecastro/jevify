@@ -1,14 +1,14 @@
 {
   "recipe": "recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml",
   "recipe_stem": "deepseek-v4-flash-vision-exp-keys.vllm",
-  "recipe_hash": "35d32f480abf5a9ff2e3de2cbf9967658b58defd0706b44a349d118b784182f5",
+  "recipe_hash": "2d11f28d161422de24b0c9874cbe73f3f9841f56ced155f8efff1303113a6734",
   "model": "deepseek-v4-flash-vision-exp-keys",
   "backend": {
     "kind": "endpoint",
     "dialect": "vllm",
     "version": "0.25.2.dev0+g752a3a504.d20260714",
     "base_url": "http://192.168.2.20:8888/v1",
-    "probed_at": "2026-09-20T01:18:14+00:00"
+    "probed_at": "2026-09-20T03:48:15+00:00"
   },
   "suite": "policy-29",
   "suite_file": "suites/policy-29.jsonl",
@@ -16,37 +16,37 @@
   "expected_answers_by": "human (the author of the cases)",
   "jevify_version": "0.1.0",
   "python": "3.14.7",
-  "run_at": "2026-09-20T01:30:32+00:00",
-  "concurrency": 4,
-  "command": "jevify eval recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml suites/policy-29.jsonl --concurrency 4 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "run_at": "2026-09-20T03:48:44+00:00",
+  "concurrency": 2,
+  "command": "jevify eval recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml suites/policy-29.jsonl --concurrency 2 --runs-dir runs --evidence-dir docs/evidence --controls",
   "controls": {
     "shuffled_context": {
       "cases": 29,
-      "agreement_with_label": 0.6896551724137931,
+      "agreement_with_label": 0.7241379310344828,
       "failed": [],
       "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
     },
     "option_permutation": {
       "cases": 29,
-      "same_choice": 1.0,
+      "same_choice": 0.9655172413793104,
       "failed": [],
       "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
     }
   },
-  "raw_file": "deepseek-v4-flash-vision-exp-keys.vllm--policy-29--20260920T013053Z.jsonl",
-  "raw_sha256": "bcb9e1bc8c941baaeb5641e91a23f334632caa3f595256b515521f9064ce7309",
+  "raw_file": "deepseek-v4-flash-vision-exp-keys.vllm--policy-29--20260920T034920Z.jsonl",
+  "raw_sha256": "682184f1359011828ec9a6182bd0ff3bd239e63ca1e1bee87946783753c38cac",
   "metrics": {
     "cases": 29,
     "scored": 29,
     "errors": 0,
-    "accuracy": 1.0,
-    "log_loss": 0.007850773573799113,
-    "brier": 0.0023194270271876274,
-    "ece": 0.007189802860722648,
+    "accuracy": 0.9655172413793104,
+    "log_loss": 0.024196991360220015,
+    "brier": 0.017242941259055775,
+    "ece": 0.017534414614872002,
     "groups": {
       "diagnostic": {
         "cases": 23,
-        "accuracy": 1.0
+        "accuracy": 0.9565217391304348
       },
       "original": {
         "cases": 6,
@@ -55,13 +55,13 @@
     },
     "degraded": 0,
     "latency_ms": {
-      "median": 517.2780279826839,
-      "p95": 587.4990912154317,
-      "mean": 510.88721941000426
+      "median": 428.10096801258624,
+      "p95": 568.312343605794,
+      "mean": 463.4156498269194
     },
     "warm_ms": {
-      "median": 422.0118380035274,
-      "p95": 505.0447493966203
+      "median": 362.72873100824654,
+      "p95": 1273.0371398036366
     },
     "cached_token_share": 0.0
   },
@@ -97,8 +97,8 @@
     {
       "lower": 0.4,
       "upper": 0.5,
-      "count": 0,
-      "confidence": 0.0,
+      "count": 1,
+      "confidence": 0.49998128774842787,
       "accuracy": 0.0
     },
     {
@@ -125,18 +125,25 @@
     {
       "lower": 0.8,
       "upper": 0.9,
-      "count": 1,
-      "confidence": 0.8175615747448558,
-      "accuracy": 1.0
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
     },
     {
       "lower": 0.9,
       "upper": 1.0,
       "count": 28,
-      "confidence": 0.9990690765105067,
+      "confidence": 0.9996958308541836,
       "accuracy": 1.0
     }
   ],
-  "wrong": [],
+  "wrong": [
+    {
+      "case_id": "diagnostic_6_pointwise_instruction_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.36871256064754865
+    }
+  ],
   "failed": []
 }

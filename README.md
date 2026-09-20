@@ -62,13 +62,15 @@ and the raw file's digest:
 
 | Recipe | Kind | Accuracy | Median latency | Scorecard |
 |---|---|---|---|---|
-| `deepseek-v4-flash-vision-exp-keys.vllm` | endpoint | 29/29 | 517 ms | [summary](docs/evidence/deepseek-v4-flash-vision-exp-keys.vllm--policy-29.md) |
+| `deepseek-v4-flash-vision-exp-keys.vllm` | endpoint | 28/29 | 428 ms | [summary](docs/evidence/deepseek-v4-flash-vision-exp-keys.vllm--policy-29.md) |
 | `ternary-bonsai-2-27b.llamacpp` | endpoint | 29/29 | 99 ms | [summary](docs/evidence/ternary-bonsai-2-27b.llamacpp--policy-29.md) |
 | `qwen3-vl-reranker-8b.llamacpp` | endpoint | 26/29 | 68 ms | [summary](docs/evidence/qwen3-vl-reranker-8b.llamacpp--policy-29.md) |
 | `qwen3-embedding-0.6b.local` | embedding | 19/29 | 8 ms | [summary](docs/evidence/qwen3-embedding-0.6b.local--policy-29.md) |
 | `bart-large-mnli.local` | encoder | 15/29 | 7 ms | [summary](docs/evidence/bart-large-mnli.local--policy-29.md) |
 
-Twenty-nine cases rank models; they do not measure calibration, which is why
+DeepSeek has scored 28/29 and 29/29 on separate runs; the case it misses
+sits at the policy boundary and flips between runs. Twenty-nine cases rank
+models; they do not measure calibration, which is why
 `jevify calibrate` refused to write a table for any of them
 ([evidence](docs/evidence/deepseek-v4-flash-vision-exp-keys.vllm--calibration.md)).
 Latencies are one machine's, one day's, and recorded as such.
@@ -140,4 +142,4 @@ amendment, and no number appears without the run that produced it.
 
 ## Licence
 
-[GPL-3.0](LICENSE).
+[MIT](LICENSE). Relicensed from GPL-3.0 on 2026-09-20 (ADR-0001 D3, amended); every line in the tree is the author's own or from a permissively licensed source credited in `THIRD_PARTY_LICENSES.md` when one enters.
