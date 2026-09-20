@@ -53,10 +53,15 @@ and an API are non-goals (`docs/00-invariants.md` §6).
 
 ### D3 — Licence
 
-GPL-3.0, matching DevCake. Borrowed code keeps its own notice: the
-option-attention head lineage from jevlike (MIT) and any encoder layout taken
-from Laya (Apache-2.0) are credited in `THIRD_PARTY_LICENSES.md` when they
-enter the tree.
+MIT, since 2026-09-20. The founding choice was GPL-3.0, matching DevCake; the
+founder relicensed once the harness existed, so that it can be embedded as a
+library, in a Jev SDK adapter or in a proprietary service, without a
+process-boundary argument. Every line in the tree at the time of the change
+was the author's own work (the only ported code came from the author's
+decision-poc), so no third-party consent was needed. Borrowed code keeps its
+own notice: any encoder layout taken from Laya (Apache-2.0) or code from
+jevlike (MIT) is credited in `THIRD_PARTY_LICENSES.md` when it enters the
+tree. Copyleft sources may not enter: MIT cannot carry them.
 
 ### D4 — Toolchain
 
@@ -104,9 +109,10 @@ summaries are committed.
 
 - The name binds the project to a competitor's product name. Accepted: the
   repository is private, the verb is the concept, and a rename is cheap.
-- GPL-3.0 excludes use as a library inside proprietary software without
-  releasing that software. Accepted knowingly; jevify is expected to be used as
-  a service over HTTP, where the GPL's reach stops at the process boundary.
+- MIT lets anyone embed jevify, including in closed products, without giving
+  anything back. Accepted (2026-09-20); the earlier GPL-3.0 reasoning, that
+  jevify would only ever be used as a service over HTTP, stopped holding once
+  the adapter kinds became importable modules.
 - Python 3.12 excludes some older hosts. Accepted for DevCake alignment.
 - The optional-extras rule means the encoder, reranker and embedding adapters
   cannot be exercised by the base install; CI installs the extras it tests.
@@ -115,7 +121,9 @@ summaries are committed.
 
 - **JevCake as the name.** Sibling naming with DevCake was attractive; the
   founder reserved it for the DevCake-side adapter instead.
-- **MIT or Apache-2.0.** Would ease library embedding; GPL-3.0 chosen for
-  consistency with DevCake and the founder's preference.
+- **Staying on GPL-3.0.** Consistent with DevCake, but it would have kept
+  jevify out of any proprietary caller. Reversed on 2026-09-20 in favour of MIT;
+  Apache-2.0 was not taken because the author wanted the shortest permissive
+  text and no patent clause to explain.
 - **Python 3.10 floor**, which the precursors used. Rejected for the DevCake
   alignment reason in D4.

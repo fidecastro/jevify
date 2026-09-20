@@ -12,7 +12,7 @@ later documents can cite "ADR-0002 D3".
 
 | # | Title | Status |
 |---|---|---|
-| [0001](0001-founding-choices.md) | Founding choices: name, scope, licence, toolchain, conventions | Accepted (2026-09-19) |
+| [0001](0001-founding-choices.md) | Founding choices: name, scope, licence, toolchain, conventions | Accepted (2026-09-19); D3 amended 2026-09-20: GPL-3.0 to MIT |
 | [0002](0002-backend-port-and-adapter-kinds.md) | One backend port, four adapter kinds, a capability probe, a readout ladder | Accepted (2026-09-19) |
 | [0003](0003-jev-compatible-api.md) | Jev's evaluate call is the API; extensions are namespaced; the SDK is the acceptance test | Accepted (2026-09-19) |
 | [0004](0004-recipes.md) | Recipes: the hashed file that is the only way a model is asked | Accepted (2026-09-19) |
