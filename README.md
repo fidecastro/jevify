@@ -221,8 +221,11 @@ you opt in.
 ## Not yet
 
 Named so that nobody has to discover it: a direct-call control, so no
-"faster than generation" claim exists yet; a Doom player that survives (both
-models die within seconds of `deadly_corridor`); the rerank kind and the
+"faster than generation" claim exists yet; clearing Doom's `deadly_corridor`
+(in `defend_the_center` Bonsai's perception plus a fixed rule scores 10 kills
+in 16 seconds, but in the corridor even the rule fed the engine's own labels
+dies before the armour, so the corridor needs a policy with memory, not
+better perception); the rerank kind and the
 embedding route against a live server; a marker-slot encoder layout; the
 grammar rung on the PrismML llama.cpp fork, which accepts a grammar without
 constraining the reported probabilities; Windows. Choice menus on the

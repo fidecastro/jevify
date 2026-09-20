@@ -56,9 +56,15 @@ def png_bytes(rgb: np.ndarray) -> bytes:
     )
 
 
-def make_game(seed: int, scenario: str = SCENARIO) -> vzd.DoomGame:
+def make_game(
+    seed: int, scenario: str = SCENARIO, skill: int | None = None, timeout_tics: int | None = None
+) -> vzd.DoomGame:
     game = vzd.DoomGame()
     game.load_config(str(Path(vzd.scenarios_path) / f"{scenario}.cfg"))
+    if skill is not None:
+        game.set_doom_skill(skill)
+    if timeout_tics is not None:
+        game.set_episode_timeout(timeout_tics)
     game.set_window_visible(False)
     game.set_mode(vzd.Mode.PLAYER)
     game.set_screen_resolution(vzd.ScreenResolution.RES_640X480)

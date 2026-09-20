@@ -31,7 +31,9 @@ result.
    rows carry `images`, regenerate the frames with
    `uv run python tools/record_doom_suite.py` after `uv sync --extra games`),
    `long-state-24` (2k to 32k tokens). `tools/play_doom.py <recipe> --scenario
-   defend_the_center --policy perception` records a video of a recipe playing.
+   defend_the_center --policy perception` records a video of a recipe playing;
+   `--policy expert` replays the same rule from the engine's labels, the
+   ceiling any perception can reach with that rule.
    Raw decisions land in `runs/` (git-ignored); the summary in `docs/evidence/`
    (committed). Read the Markdown summary, then the `wrong` list in the JSON.
 5. **Serve**: `jevify serve recipes/<name>.yaml --port 8600`. Jev's SDK works
