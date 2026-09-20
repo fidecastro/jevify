@@ -66,13 +66,14 @@ def test_one_request_per_question_and_state_is_the_shared_prefix(fixtures, fake_
     answers = run(backend.evaluate(handle, questions))
 
     assert [a.question_id for a in answers] == ["cancel", "dept"]
-    assert len(server.requests) == 2
-    user_messages = [req["messages"][-1]["content"] for req in server.requests]
+    assert len(server.requests) == 3  # the warm request, then one per question
+    user_messages = [req["messages"][-1]["content"] for req in server.requests[1:]]
     prefix = "State:\nThe customer wrote: keep my subscription, stop the newsletters.\n\n"
     assert all(content.startswith(prefix) for content in user_messages)
     assert "cancel" in user_messages[0] and "cancel" not in user_messages[1]
     assert all(req["max_tokens"] == 1 and req["logprobs"] is True for req in server.requests)
     assert all(req["chat_template_kwargs"] == {"thinking": False} for req in server.requests)
+    assert server.requests[0]["messages"][-1]["content"] == prefix  # warm sends the prefix only
 
 
 def test_never_sends_prompt_logprobs(fixtures, fake_server_factory):
@@ -103,7 +104,8 @@ def test_client_retries_429_then_succeeds(fixtures, fake_server_factory):
         backend.evaluate(run(backend.warm(STATE)), [NoulQuestion(id="q", instructions="x")])
     )
     assert answer.rung == "top_k"
-    assert len(server.requests) == 3  # two rate-limited attempts, then success
+    # the warm request absorbs the two rate-limited attempts; then warm and question succeed
+    assert len(server.requests) == 4
 
 
 def test_client_gives_up_after_bounded_retries(fixtures, fake_server_factory):
@@ -141,7 +143,7 @@ def test_api_key_sent_when_configured(fixtures, fake_server_factory, monkeypatch
     )
     backend = build_backend(recipe, http=http)
     run(backend.evaluate(run(backend.warm(STATE)), [NoulQuestion(id="q", instructions="x")]))
-    assert seen == ["Bearer secret-123"]
+    assert seen == ["Bearer secret-123"] * 2  # warm and question
 
 
 def test_auto_rung_without_probe_fails_loudly(fixtures, fake_server_factory):
@@ -181,7 +183,7 @@ def test_per_option_choice_composes_yes_no_readouts(fixtures, fake_server_factor
     )
     [answer] = run(backend.evaluate(run(backend.warm(STATE)), [question]))
     assert answer.calls == 2
-    assert len(server.requests) == 2
+    assert len(server.requests) == 3  # warm plus one request per option
     d = Distribution.from_logprobs(answer.logprobs)
     # Each option's score is its yes-minus-no logit: +2 and -2, so softmax gives e^4 : 1.
     assert d.as_mapping()["billing"] == pytest.approx(math.exp(4) / (1 + math.exp(4)))

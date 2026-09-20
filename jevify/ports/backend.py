@@ -74,6 +74,7 @@ class Capabilities:
     multi_token_answers: tuple[str, ...] = ()
     cache: CacheEvidence | None = None
     fanout: FanoutEvidence | None = None
+    slots: int | None = None  # llama.cpp parallel slots, each with its own cache
     probed_at: str | None = None
     notes: tuple[str, ...] = ()
 
@@ -110,6 +111,7 @@ class StateHandle:
     prefix: RenderedPrefix
     warm_ms: float | None = None
     cached_tokens: int | None = None
+    slots: tuple[int, ...] = ()  # llama.cpp slots that hold this prefix
 
 
 @dataclass(frozen=True)

@@ -139,11 +139,15 @@ probe:
   multi_token_answers: []
   cache:
     block_tokens: 1
-    first_ms: 34.430386003805324
-    second_ms: 13.650226988829672
+    first_ms: 34.589903021696955
+    second_ms: 13.634741975693032
     cached_tokens: 948
-  fanout: null
-  probed_at: '2026-09-20T01:12:15+00:00'
+  fanout:
+    concurrency: 1
+    concurrent_ms: 25.85078199626878
+    sequential_ms: 27.31739397859201
+  slots: 2
+  probed_at: '2026-09-20T01:18:17+00:00'
   notes: []
 provenance:
   author: Felipe Infante de Castro

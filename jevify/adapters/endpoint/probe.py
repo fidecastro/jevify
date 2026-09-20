@@ -7,6 +7,7 @@ picks its readout rung from it.
 
 from __future__ import annotations
 
+import asyncio
 import datetime as dt
 import time
 from collections.abc import Callable
@@ -29,6 +30,7 @@ from jevify.ports.backend import (
     CacheEvidence,
     Capabilities,
     Dialect,
+    FanoutEvidence,
     Rung,
 )
 from jevify.recipes.render import RenderedPart, render_prefix, render_question
@@ -94,6 +96,8 @@ class Prober:
             rungs.add(Rung.GRAMMAR)
         prefill = await self._prefill_honored(dialect) if prefix.mode == "messages" else None
         cache = await self._cache(state, dialect)
+        slots = await self._slots(dialect)
+        fanout = await self._fanout(prefix, part, dialect, slots)
 
         return Capabilities(
             kind="endpoint",
@@ -111,6 +115,8 @@ class Prober:
             answer_tokens=answer_tokens,
             multi_token_answers=tuple(multi),
             cache=cache,
+            fanout=fanout,
+            slots=slots,
             probed_at=dt.datetime.now(dt.UTC).isoformat(timespec="seconds"),
             notes=tuple(self.notes),
         )
@@ -353,6 +359,46 @@ class Prober:
         keep = int(len(text) * budget / count)
         self.notes.append(f"probe state cut to about {budget} tokens to fit the context")
         return text[:keep]
+
+    # ------------------------------------------------------------------ fan-out
+    async def _slots(self, dialect: Dialect) -> int | None:
+        if dialect is not Dialect.LLAMACPP:
+            return None
+        try:
+            props = await self.client.get_root("props")
+            return int(props.get("total_slots") or 1)
+        except BackendError:
+            return None
+
+    async def _fanout(self, prefix, part: RenderedPart, dialect: Dialect, slots: int | None):
+        """Four identical-prefix readouts sequentially, then concurrently; the concurrency the
+        recipe gets is the concurrent width only when it was measurably faster."""
+        width = 4 if slots is None else max(1, min(4, slots))
+
+        def request(slot: int | None):
+            path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
+            body["logprobs"] = True if "messages" in body else 1
+            if "messages" in body:
+                body["top_logprobs"] = 1
+            if slot is not None:
+                body["id_slot"] = slot
+            post = self.client.post_root if path == "completion" else self.client.post_v1
+            return post(path, body)
+
+        slot_of = (lambda i: i % width) if slots else (lambda i: None)
+        for i in range(width):  # let every slot hold the prefix before timing
+            await request(slot_of(i))
+        t0 = self.clock()
+        for i in range(width):
+            await request(slot_of(i))
+        sequential_ms = (self.clock() - t0) * 1000.0
+        t0 = self.clock()
+        await asyncio.gather(*(request(slot_of(i)) for i in range(width)))
+        concurrent_ms = (self.clock() - t0) * 1000.0
+        concurrency = width if concurrent_ms < 0.7 * sequential_ms else 1
+        return FanoutEvidence(
+            concurrency=concurrency, concurrent_ms=concurrent_ms, sequential_ms=sequential_ms
+        )
 
     # ------------------------------------------------------------------ cache
     async def _cache(self, state: State, dialect: Dialect) -> CacheEvidence:

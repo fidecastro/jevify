@@ -19,6 +19,7 @@ template:
     '
   kwargs:
     thinking: false
+  image_marker: <__media__>
   questions:
     choice: 'Question: {instructions}
 
@@ -257,11 +258,15 @@ probe:
   multi_token_answers: []
   cache:
     block_tokens: 256
-    first_ms: 279.00832798331976
-    second_ms: 279.31034701759927
+    first_ms: 277.46440601185896
+    second_ms: 275.04102399689145
     cached_tokens: 768
-  fanout: null
-  probed_at: '2026-09-20T01:00:53+00:00'
+  fanout:
+    concurrency: 4
+    concurrent_ms: 630.1664589846041
+    sequential_ms: 1111.3489540002774
+  slots: null
+  probed_at: '2026-09-20T01:18:14+00:00'
   notes:
   - 'logit_bias rejected: POST http://192.168.2.20:8888/v1/chat/completions returned 400: The min_p and
     logit_bias sampling parameters are not yet supported with speculative decoding.'
@@ -270,7 +275,6 @@ provenance:
   created: '2026-09-19'
   status: probed
   launch: vLLM 0.25.2.dev0+g752a3a504.d20260714; max_model_len 1048576; prefix caching on, 256-token blocks
-  scorecards: []
   notes:
   - 'Chat messages mode with chat_template_kwargs thinking=false: measured 2026-09-19, the default template
     injects a ~90-token reasoning preamble and opens <think>; with the switch the first generated token
@@ -279,3 +283,4 @@ provenance:
     but are legitimate spellings, so each label is a token set.
   - This build ignores logprob_token_ids and return_as_token_id; the deployment runs speculative decoding,
     which rejects logit_bias, so rungs 1, 2 and 4 are unavailable here (probe notes).
+  scorecards: []

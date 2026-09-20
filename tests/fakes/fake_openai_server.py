@@ -15,6 +15,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+import anyio
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -43,6 +44,10 @@ class Behaviour:
     scores_when: list[tuple[str, dict[str, float]]] = field(default_factory=list)
     rate_limit_first: int = 0
     version: str = "0.99.0-fake"
+    simulate_latency: bool = False  # sleep cold_ms on a cache miss, warm_ms on a hit
+    cold_ms: float = 30.0
+    warm_ms: float = 2.0
+    slots: int = 2  # llama.cpp only: parallel slots, each with its own cache
     grammar: bool = False  # llama.cpp only: honour a GBNF grammar with post-sampling probs
     multimodal: bool = False  # accept image content parts / native multimodal_data
     # answer texts that tokenize to two tokens on this "model" (probe must catch them)
@@ -108,6 +113,9 @@ class FakeOpenAIServer:
         self.tokenizer = FakeTokenizer(self.behaviour.dialect)
         self.requests: list[dict[str, Any]] = []
         self.responses: list[dict[str, Any]] = []
+        self.in_flight = 0
+        self.max_in_flight = 0
+        self.slot_blocks: dict[int, set[tuple[int, ...]]] = {}
         self.seen_blocks: set[tuple[int, ...]] = set()
         self._served = 0
         routes = [
@@ -211,27 +219,39 @@ class FakeOpenAIServer:
         parts.append("<|assistant|>" + (THINK_OPEN if thinking_on else ""))
         return "".join(parts)
 
-    def _cache_and_usage(self, prompt: str) -> dict[str, Any]:
+    async def _cache_and_usage(self, prompt: str, body: dict[str, Any]) -> dict[str, Any]:
         ids = self.tokenizer.encode(prompt)
         n = len(ids)
         cached = 0
         b = self.behaviour
         blocks = [tuple(ids[i : i + b.block_tokens]) for i in range(0, n, b.block_tokens)]
         full_blocks = [blk for blk in blocks if len(blk) == b.block_tokens]
+        if b.dialect == "llamacpp":
+            # each slot has its own cache; an unpinned request lands on slot 0
+            slot = int(body.get("id_slot", 0) or 0) % max(1, b.slots)
+            seen = self.slot_blocks.setdefault(slot, set())
+        else:
+            seen = self.seen_blocks
         for blk in full_blocks:
-            if blk in self.seen_blocks:
+            if blk in seen:
                 cached += b.block_tokens
             else:
                 break
-        self.seen_blocks.update(full_blocks)
+        seen.update(full_blocks)
+        if b.simulate_latency:
+            hit = full_blocks and cached == len(full_blocks) * b.block_tokens
+            await anyio.sleep((b.warm_ms if hit else b.cold_ms) / 1000.0)
         usage: dict[str, Any] = {"prompt_tokens": n, "completion_tokens": 1, "total_tokens": n + 1}
-        if b.report_cached_tokens and b.dialect == "vllm":
-            usage["prompt_tokens_details"] = {"cached_tokens": cached, "multimodal_tokens": None}
+        if b.report_cached_tokens:
+            # both vLLM and llama.cpp (build 10809) report the reuse count here
+            usage["prompt_tokens_details"] = {"cached_tokens": cached}
         return usage
 
     def _gate(self, body: dict[str, Any], path: str) -> JSONResponse | None:
         self.requests.append({"path": path, **body})
         self._served += 1
+        self.in_flight += 1
+        self.max_in_flight = max(self.max_in_flight, self.in_flight)
         if self._served <= self.behaviour.rate_limit_first:
             return JSONResponse(
                 {"error": {"message": "rate limited", "type": "rate_limit"}},
@@ -268,7 +288,7 @@ class FakeOpenAIServer:
         logprobs = self._distribution(prompt, body)
         entries = self._entries(logprobs, body)
         sampled = max(logprobs.items(), key=lambda kv: kv[1])
-        usage = self._cache_and_usage(prompt)
+        usage = await self._cache_and_usage(prompt, body)
         content_entry = self._content_entry(sampled, entries, body)
         return self._record(
             {
@@ -308,7 +328,7 @@ class FakeOpenAIServer:
         logprobs = self._distribution(prompt, body)
         entries = self._entries(logprobs, body)
         sampled = max(logprobs.items(), key=lambda kv: kv[1])
-        usage = self._cache_and_usage(prompt)
+        usage = await self._cache_and_usage(prompt, body)
         if self.behaviour.dialect == "llamacpp":
             # llama.cpp answers the completions route with the chat-style content list.
             return self._record(
@@ -365,6 +385,7 @@ class FakeOpenAIServer:
 
     def _record(self, payload: dict[str, Any]) -> JSONResponse:
         self.responses.append(payload)
+        self.in_flight -= 1
         return JSONResponse(payload)
 
     async def native_completion(self, request: Request) -> JSONResponse:
@@ -384,7 +405,7 @@ class FakeOpenAIServer:
         logprobs = self._distribution(prompt, body)
         entries = self._entries(logprobs, body)
         sampled = max(logprobs.items(), key=lambda kv: kv[1])
-        usage = self._cache_and_usage(prompt)
+        usage = await self._cache_and_usage(prompt, body)
         return self._record(
             {
                 "content": sampled[0],
@@ -421,7 +442,7 @@ class FakeOpenAIServer:
         return JSONResponse(
             {
                 "build_info": f"b{self.behaviour.version}",
-                "total_slots": 2,
+                "total_slots": self.behaviour.slots,
                 "default_generation_settings": {"n_ctx": self.behaviour.max_context},
             }
         )

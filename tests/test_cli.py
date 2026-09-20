@@ -45,7 +45,7 @@ def test_ask_prints_jev_shaped_json(fixtures, fake_http_server_factory, tmp_path
     assert body["answers"]["dept"]["x_jevify"]["semantics"] == "readout"
     assert body["usage"]["output_tokens"] == 2
     assert body["x_jevify"]["recipe_hash"]
-    assert len(live.server.requests) == 2
+    assert len(live.server.requests) == 3  # warm plus two questions
 
 
 def test_version_prints_package_version() -> None:
