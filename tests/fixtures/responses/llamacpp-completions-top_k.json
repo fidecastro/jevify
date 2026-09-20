@@ -1,0 +1,122 @@
+{
+ "choices": [
+  {
+   "text": "yes",
+   "index": 0,
+   "logprobs": {
+    "content": [
+     {
+      "id": 9693,
+      "token": "yes",
+      "bytes": [
+       121,
+       101,
+       115
+      ],
+      "logprob": -2.387049674987793,
+      "top_logprobs": [
+       {
+        "id": 9693,
+        "token": "yes",
+        "bytes": [
+         121,
+         101,
+         115
+        ],
+        "logprob": -2.387049674987793
+       },
+       {
+        "id": 2152,
+        "token": "no",
+        "bytes": [
+         110,
+         111
+        ],
+        "logprob": -2.4439799785614014
+       },
+       {
+        "id": 7,
+        "token": "(",
+        "bytes": [
+         40
+        ],
+        "logprob": -4.508039474487305
+       },
+       {
+        "id": 9,
+        "token": "*",
+        "bytes": [
+         42
+        ],
+        "logprob": -4.897485733032227
+       },
+       {
+        "id": 14004,
+        "token": "YES",
+        "bytes": [
+         89,
+         69,
+         83
+        ],
+        "logprob": -4.932689666748047
+       },
+       {
+        "id": 1782,
+        "token": "the",
+        "bytes": [
+         116,
+         104,
+         101
+        ],
+        "logprob": -5.012427806854248
+       },
+       {
+        "id": 9454,
+        "token": "Yes",
+        "bytes": [
+         89,
+         101,
+         115
+        ],
+        "logprob": -5.14976167678833
+       },
+       {
+        "id": 12,
+        "token": "-",
+        "bytes": [
+         45
+        ],
+        "logprob": -5.1944732666015625
+       }
+      ]
+     }
+    ]
+   },
+   "finish_reason": "length"
+  }
+ ],
+ "created": 1789865504,
+ "model": "/home/felix/Work/models/Qwen3-VL-Reranker-8B.Q8_0.gguf",
+ "system_fingerprint": "b10809-5266f24da7",
+ "object": "text_completion",
+ "usage": {
+  "completion_tokens": 1,
+  "prompt_tokens": 105,
+  "total_tokens": 106,
+  "prompt_tokens_details": {
+   "cached_tokens": 104
+  }
+ },
+ "id": "chatcmpl-kq4dz1UmjuUmjeDP6we04dvKMarg7DGB",
+ "timings": {
+  "cache_n": 104,
+  "prompt_n": 1,
+  "prompt_ms": 20.65,
+  "prompt_per_token_ms": 20.65,
+  "prompt_per_second": 48.426150121065376,
+  "predicted_n": 1,
+  "predicted_ms": 0.001,
+  "predicted_per_token_ms": 0.0,
+  "predicted_per_second": 0.0
+ }
+}

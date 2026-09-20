@@ -13,7 +13,7 @@ from typing import Any
 
 from jevify.adapters.endpoint.dialects import Entry, Parsed
 from jevify.ports.backend import BackendError, Capabilities, Dialect, Rung
-from jevify.recipes.render import RenderedQuestion
+from jevify.recipes.render import RenderedPart
 from jevify.recipes.schema import Token
 
 _PIECE_MARKS = {"Ġ": " ", "Ċ": "\n", "▁": " "}
@@ -39,7 +39,7 @@ class Readout:
     degraded: bool
 
 
-def read_answer_set(parsed: Parsed, question: RenderedQuestion, *, full_softmax: bool) -> Readout:
+def read_answer_set(parsed: Parsed, question: RenderedPart, *, full_softmax: bool) -> Readout:
     """Collect each label's mass from the entries; a label's tokens are distinct events."""
     per_label: dict[str, float] = {}
     answer_mass = 0.0
@@ -71,16 +71,14 @@ class TopKRung:
         return True  # every OpenAI-compatible server lists top logprobs
 
     @staticmethod
-    def shape(
-        body: dict[str, Any], question: RenderedQuestion, top_k: int, dialect: Dialect
-    ) -> None:
+    def shape(body: dict[str, Any], question: RenderedPart, top_k: int, dialect: Dialect) -> None:
         if "messages" in body:
             body["top_logprobs"] = top_k
         else:
             body["logprobs"] = top_k
 
     @staticmethod
-    def read(parsed: Parsed, question: RenderedQuestion) -> Readout:
+    def read(parsed: Parsed, question: RenderedPart) -> Readout:
         readout = read_answer_set(parsed, question, full_softmax=True)
         if readout.missing:
             raise BackendError(

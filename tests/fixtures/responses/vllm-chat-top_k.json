@@ -1,0 +1,96 @@
+{
+ "id": "chatcmpl-b3e6dd7cb3c0c685",
+ "object": "chat.completion",
+ "created": 1789865504,
+ "model": "deepseek-v4-flash-vision-exp-keys",
+ "choices": [
+  {
+   "index": 0,
+   "message": {
+    "role": "assistant",
+    "content": "no",
+    "refusal": null,
+    "annotations": null,
+    "audio": null,
+    "function_call": null,
+    "reasoning": null
+   },
+   "logprobs": {
+    "content": [
+     {
+      "token": "no",
+      "logprob": -0.007709747180342674,
+      "bytes": [
+       110,
+       111
+      ],
+      "top_logprobs": [
+       {
+        "token": "no",
+        "logprob": -0.007709747180342674,
+        "bytes": [
+         110,
+         111
+        ]
+       },
+       {
+        "token": "yes",
+        "logprob": -5.257709980010986,
+        "bytes": [
+         121,
+         101,
+         115
+        ]
+       },
+       {
+        "token": "No",
+        "logprob": -6.007709980010986,
+        "bytes": [
+         78,
+         111
+        ]
+       },
+       {
+        "token": "Yes",
+        "logprob": -11.257709503173828,
+        "bytes": [
+         89,
+         101,
+         115
+        ]
+       },
+       {
+        "token": "NO",
+        "logprob": -15.757709503173828,
+        "bytes": [
+         78,
+         79
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "finish_reason": "length",
+   "stop_reason": null,
+   "token_ids": null,
+   "routed_experts": null
+  }
+ ],
+ "service_tier": null,
+ "system_fingerprint": "vllm-0.25.2.dev0+g752a3a504.d20260714-tp2-7382e8ad",
+ "usage": {
+  "prompt_tokens": 44,
+  "total_tokens": 45,
+  "completion_tokens": 1,
+  "prompt_tokens_details": {
+   "cached_tokens": 0,
+   "multimodal_tokens": null
+  }
+ },
+ "prompt_logprobs": null,
+ "prompt_token_ids": null,
+ "prompt_text": null,
+ "kv_transfer_params": null,
+ "metrics": null
+}

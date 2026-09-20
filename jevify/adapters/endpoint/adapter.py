@@ -83,25 +83,50 @@ class EndpointBackend:
         return rung
 
     async def _answer(self, handle: StateHandle, question: Question, rung: Rung) -> RawAnswer:
+        """One request per part; a single-part question is the readout itself, a per-option
+        question composes each option's yes-minus-no logit into one distribution."""
         rendered = render_question(self.recipe, question)
-        path, body = base_request(self.recipe.model.name, handle.prefix, rendered, self.dialect)
         impl = RUNGS[rung]
-        impl.shape(body, rendered, self.recipe.readout.top_k, self.dialect)
-        started = self.clock()
-        response = await self.client.post_v1(path, body)
-        latency_ms = (self.clock() - started) * 1000.0
-        parsed = parse_response(path, response, self.dialect)
-        readout = impl.read(parsed, rendered)
+        readouts = []
+        latency_ms = 0.0
+        prompt_tokens = 0
+        cached_tokens: int | None = None
+        raw_parts = []
+        for part in rendered.parts:
+            path, body = base_request(
+                self.recipe.model.name, handle.prefix, part.text, self.dialect
+            )
+            impl.shape(body, part, self.recipe.readout.top_k, self.dialect)
+            started = self.clock()
+            response = await self.client.post_v1(path, body)
+            latency_ms += (self.clock() - started) * 1000.0
+            parsed = parse_response(path, response, self.dialect)
+            readouts.append(impl.read(parsed, part))
+            prompt_tokens += parsed.prompt_tokens or 0
+            cached_tokens = parsed.cached_tokens
+            raw_parts.append({"path": path, "entries": [e.__dict__ for e in parsed.entries]})
+        if rendered.composition == "single":
+            readout = readouts[0]
+            logprobs, off_menu, missing = readout.logprobs, readout.off_menu_mass, readout.missing
+        else:
+            logprobs = {
+                part.label: r.logprobs["true"] - r.logprobs["false"]
+                for part, r in zip(rendered.parts, readouts, strict=True)
+                if part.label is not None
+            }
+            off_menu, missing = None, ()
         return RawAnswer(
             question_id=question.id,
-            logprobs=readout.logprobs,
+            logprobs=logprobs,
             semantics="readout",
             rung=rung,
-            degraded=readout.degraded,
-            off_menu_mass=readout.off_menu_mass,
+            degraded=any(r.degraded for r in readouts),
+            off_menu_mass=off_menu,
             latency_ms=latency_ms,
-            prompt_tokens=parsed.prompt_tokens,
-            cached_tokens=parsed.cached_tokens,
-            missing=readout.missing,
-            raw={"path": path, "entries": [e.__dict__ for e in parsed.entries]},
+            prompt_tokens=prompt_tokens,
+            cached_tokens=cached_tokens,
+            missing=missing,
+            calls=len(rendered.parts),
+            composition=rendered.composition,
+            raw={"parts": raw_parts},
         )

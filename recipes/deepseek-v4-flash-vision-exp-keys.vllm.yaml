@@ -1,0 +1,78 @@
+# DeepSeek V4 Flash Vision (abliterated "keys" variant) served by vLLM on the dual DGX Spark.
+# Chat "messages" mode with the model's thinking switch off, which puts the answer at the
+# first generated token (measured 2026-09-19). Token ids come from the server's /tokenize.
+schema_version: 1
+model:
+  name: deepseek-v4-flash-vision-exp-keys
+  kind: endpoint
+  revision: drowzeys/keys-DeepSeekV4Flash-Vision-EXP-ablit
+endpoint:
+  base_url: http://192.168.2.20:8888/v1
+  dialect: vllm
+  timeout_s: 300
+template:
+  mode: messages
+  system: "You answer typed questions about the state with a single token."
+  state: "State:\n{state}"
+  state_end: "\n\n"
+  kwargs:
+    thinking: false
+  questions:
+    choice: "Question: {instructions}\nOptions:\n{options}\nAnswer with the identifier of the best option."
+    option_line: "{identifier}. {key}{description}"
+    description_sep: ": "
+    score: "Question: {instructions}\nLevels:\n{levels}\nAnswer with the identifier of the level that applies."
+    level_line: "{identifier}. {text}"
+    noul: "Question: {instructions}\nAnswer with exactly one word, yes or no."
+answers:
+  # At this slot the model answers without a leading space; the space variants carry
+  # far less mass but are legitimate spellings, so every variant is one token set.
+  noul:
+    "true":
+      - { text: "yes", id: 16520 }
+      - { text: "Yes", id: 10240 }
+      - { text: "YES", id: 51346 }
+      - { text: " yes", id: 14452 }
+      - { text: " Yes", id: 11608 }
+    "false":
+      - { text: "no", id: 3567 }
+      - { text: "No", id: 4484 }
+      - { text: "NO", id: 13909 }
+      - { text: " no", id: 1119 }
+      - { text: " No", id: 3011 }
+  identifiers:
+    - [{ text: "A", id: 35 }, { text: " A", id: 334 }]
+    - [{ text: "B", id: 36 }, { text: " B", id: 406 }]
+    - [{ text: "C", id: 37 }, { text: " C", id: 345 }]
+    - [{ text: "D", id: 38 }, { text: " D", id: 420 }]
+    - [{ text: "E", id: 39 }, { text: " E", id: 446 }]
+    - [{ text: "F", id: 40 }, { text: " F", id: 447 }]
+    - [{ text: "G", id: 41 }, { text: " G", id: 489 }]
+    - [{ text: "H", id: 42 }, { text: " H", id: 437 }]
+    - [{ text: "I", id: 43 }, { text: " I", id: 342 }]
+    - [{ text: "J", id: 44 }, { text: " J", id: 552 }]
+    - [{ text: "K", id: 45 }, { text: " K", id: 657 }]
+    - [{ text: "L", id: 46 }, { text: " L", id: 462 }]
+    - [{ text: "M", id: 47 }, { text: " M", id: 373 }]
+    - [{ text: "N", id: 48 }, { text: " N", id: 471 }]
+    - [{ text: "O", id: 49 }, { text: " O", id: 541 }]
+    - [{ text: "P", id: 50 }, { text: " P", id: 380 }]
+    - [{ text: "Q", id: 51 }, { text: " Q", id: 1646 }]
+    - [{ text: "R", id: 52 }, { text: " R", id: 433 }]
+    - [{ text: "S", id: 53 }, { text: " S", id: 327 }]
+    - [{ text: "T", id: 54 }, { text: " T", id: 330 }]
+    - [{ text: "U", id: 55 }, { text: " U", id: 628 }]
+    - [{ text: "V", id: 56 }, { text: " V", id: 721 }]
+    - [{ text: "W", id: 57 }, { text: " W", id: 448 }]
+    - [{ text: "X", id: 58 }, { text: " X", id: 2137 }]
+    - [{ text: "Y", id: 59 }, { text: " Y", id: 894 }]
+    - [{ text: "Z", id: 60 }, { text: " Z", id: 1653 }]
+readout:
+  rung: top_k
+  top_k: 20
+  permutation: none
+provenance:
+  author: Felipe Infante de Castro
+  created: "2026-09-19"
+  status: draft
+  launch: "vLLM 0.25.2.dev0+g752a3a504.d20260714; max_model_len 1048576; prefix caching on, 256-token blocks"

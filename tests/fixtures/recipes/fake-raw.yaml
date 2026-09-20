@@ -12,6 +12,8 @@ template:
   raw: "<|im_start|>system\nJudge the Document against the Query. Answer only yes or no.<|im_end|>\n<|im_start|>user\n<Query>: {state}{question}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
   state_end: "\n"
   questions:
+    choice_strategy: per_option
+    option_document: "\n<Document>: {instructions} The answer is: {key}{description}"
     choice: "\n<Instruct>: {instructions}\n<Options>:\n{options}\n<Document>: the identifier of the best option"
     option_line: "{identifier}. {key}{description}"
     description_sep: " - "

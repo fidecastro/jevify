@@ -3,12 +3,18 @@
 Nothing else in jevify turns a state or a question into text. Every
 placeholder is filled by replacement, never by `str.format`, so braces inside
 a state or an instruction can never be mistaken for placeholders.
+
+A rendered question is one or more *parts*. With identifier-based choice the
+question is a single part whose answer set is the identifiers; with the
+per-option strategy each option is its own yes/no part and the adapter
+composes them (ADR-0002 D2: state as shared prefix, each option a suffix).
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from typing import Literal
 
 from jevify.domain.questions import (
     ChoiceQuestion,
@@ -25,6 +31,8 @@ from jevify.recipes.store import RecipeError
 _STATE = "{state}"
 _QUESTION = "{question}"
 
+Composition = Literal["single", "per_option"]
+
 
 @dataclass(frozen=True)
 class RenderedPrefix:
@@ -39,14 +47,35 @@ class RenderedPrefix:
 
 
 @dataclass(frozen=True)
-class RenderedQuestion:
-    """The suffix for one question, ending at the answer slot, plus its answer set."""
+class RenderedPart:
+    """One request's suffix, ending at the answer slot, with its own answer set."""
 
     text: str
-    kind: QuestionKind
     labels: tuple[str, ...]
     tokens: dict[str, tuple[Token, ...]]
+    label: str | None = None  # the option this part scores, under per_option composition
+
+
+@dataclass(frozen=True)
+class RenderedQuestion:
+    kind: QuestionKind
+    labels: tuple[str, ...]
+    composition: Composition
+    parts: tuple[RenderedPart, ...]
     order: tuple[int, ...] = ()
+
+    @property
+    def text(self) -> str:
+        """The suffix of a single-part question."""
+        if self.composition != "single":
+            raise RecipeError("a per-option question has one suffix per option, not one text")
+        return self.parts[0].text
+
+    @property
+    def tokens(self) -> dict[str, tuple[Token, ...]]:
+        if self.composition != "single":
+            raise RecipeError("a per-option question has one answer set per part")
+        return self.parts[0].tokens
 
 
 def _fill(template: str, **fields: str) -> str:
@@ -83,6 +112,11 @@ def render_question(
 ) -> RenderedQuestion:
     templates = recipe.template.questions
     instructions = question.instructions or ""
+    noul_tokens = {
+        "false": tuple(recipe.answers.noul["false"]),
+        "true": tuple(recipe.answers.noul["true"]),
+    }
+
     if isinstance(question, NoulQuestion):
         body = _fill(
             templates.noul,
@@ -90,11 +124,8 @@ def render_question(
             true_criterion=question.true_criterion or "",
             false_criterion=question.false_criterion or "",
         )
-        tokens = {
-            "false": tuple(recipe.answers.noul["false"]),
-            "true": tuple(recipe.answers.noul["true"]),
-        }
-        return _finish(recipe, body, "noul", ("false", "true"), tokens, ())
+        part = RenderedPart(_tail(recipe, body), ("false", "true"), noul_tokens)
+        return RenderedQuestion("noul", ("false", "true"), "single", (part,))
 
     if isinstance(question, ChoiceQuestion):
         items = [(option.key, option.description) for option in question.options]
@@ -104,6 +135,21 @@ def render_question(
         line_template, label_of = templates.level_line, "text"
     else:  # pragma: no cover - the union is closed
         raise RecipeError(f"unsupported question type {type(question).__name__}")
+    labels = question.labels
+
+    if templates.choice_strategy == "per_option":
+        assert templates.option_document is not None  # validated by the schema
+        parts = []
+        for label, (text, description) in zip(labels, items, strict=True):
+            fields = {
+                "instructions": instructions,
+                label_of: text,
+                "key": text,
+                "description": (templates.description_sep + description) if description else "",
+            }
+            body = _fill(templates.option_document, **fields)
+            parts.append(RenderedPart(_tail(recipe, body), ("false", "true"), noul_tokens, label))
+        return RenderedQuestion(question.kind, labels, "per_option", tuple(parts))
 
     alphabet = recipe.answers.identifiers
     if len(items) > len(alphabet):
@@ -117,7 +163,6 @@ def render_question(
 
     lines: list[str] = []
     tokens: dict[str, tuple[Token, ...]] = {}
-    labels = question.labels
     for position, item_index in enumerate(display):
         text, description = items[item_index]
         group = alphabet[position]
@@ -131,19 +176,14 @@ def render_question(
     block = "\n".join(lines)
     template = templates.choice if isinstance(question, ChoiceQuestion) else templates.score
     body = _fill(template, instructions=instructions, options=block, levels=block)
-    return _finish(recipe, body, question.kind, labels, tokens, display)
+    part = RenderedPart(_tail(recipe, body), labels, tokens)
+    return RenderedQuestion(question.kind, labels, "single", (part,), display)
 
 
-def _finish(
-    recipe: Recipe,
-    body: str,
-    kind: QuestionKind,
-    labels: tuple[str, ...],
-    tokens: dict[str, tuple[Token, ...]],
-    order: tuple[int, ...],
-) -> RenderedQuestion:
+def _tail(recipe: Recipe, body: str) -> str:
+    """In raw mode the suffix carries the template's tail up to the answer slot."""
     if recipe.template.mode == "raw":
         assert recipe.template.raw is not None
         tail = recipe.template.raw[recipe.template.raw.index(_QUESTION) :]
-        body = _fill(tail, question=body)
-    return RenderedQuestion(text=body, kind=kind, labels=labels, tokens=tokens, order=order)
+        return _fill(tail, question=body)
+    return body

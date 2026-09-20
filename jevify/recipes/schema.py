@@ -43,6 +43,17 @@ class QuestionTemplates(_Strict):
     score: str
     level_line: str
     noul: str
+    # `identifiers`: one request, options labelled with single-token identifiers.
+    # `per_option`: one yes/no request per option, the option rendered as `option_document`;
+    # the model class that never emits identifiers (a yes/no reranker) needs this.
+    choice_strategy: Literal["identifiers", "per_option"] = "identifiers"
+    option_document: str | None = None
+
+    @model_validator(mode="after")
+    def _check_strategy(self) -> QuestionTemplates:
+        if self.choice_strategy == "per_option" and not self.option_document:
+            raise ValueError("choice_strategy per_option needs option_document")
+        return self
 
 
 class TemplateSpec(_Strict):

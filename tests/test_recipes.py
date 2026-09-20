@@ -151,3 +151,32 @@ def test_render_structured_state_deterministically() -> None:
     prefix = render_prefix(recipe, state)
     assert prefix.text == 'State:\n{\n  "subject": "Refund",\n  "body": "Charged twice"\n}\n\n'
     assert render_prefix(recipe, state).text == prefix.text
+
+
+def test_render_choice_per_option_yields_one_yes_no_part_per_option() -> None:
+    recipe = load_recipe(FIXTURES / "fake-raw.yaml")  # choice_strategy: per_option
+    q = ChoiceQuestion(
+        id="dept",
+        instructions="Which team handles this?",
+        options=(Option("billing", "invoices"), Option("support", None)),
+    )
+    rendered = render_question(recipe, q)
+    assert rendered.composition == "per_option"
+    assert rendered.labels == ("billing", "support")
+    assert [part.label for part in rendered.parts] == ["billing", "support"]
+    first = rendered.parts[0]
+    assert first.text.startswith(
+        "\n<Document>: Which team handles this? The answer is: billing - invoices"
+    )
+    assert first.text.endswith("<|im_start|>assistant\n<think>\n\n</think>\n\n")
+    assert first.labels == ("false", "true")
+    assert [t.text for t in first.tokens["true"]] == ["yes"]
+
+
+def test_render_identifier_choice_is_a_single_part() -> None:
+    recipe = load_recipe(FIXTURES / "fake-vllm.yaml")
+    q = ChoiceQuestion(id="q", instructions="Pick.", options=(Option("x"), Option("y")))
+    rendered = render_question(recipe, q)
+    assert rendered.composition == "single"
+    assert len(rendered.parts) == 1
+    assert rendered.parts[0].labels == ("x", "y")

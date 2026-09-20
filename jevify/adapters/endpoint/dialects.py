@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from jevify.ports.backend import Dialect
-from jevify.recipes.render import RenderedPrefix, RenderedQuestion
+from jevify.recipes.render import RenderedPrefix
 
 
 @dataclass(frozen=True)
@@ -32,13 +32,13 @@ class Parsed:
 
 
 def base_request(
-    model: str, prefix: RenderedPrefix, question: RenderedQuestion, dialect: Dialect
+    model: str, prefix: RenderedPrefix, suffix: str, dialect: Dialect
 ) -> tuple[str, dict[str, Any]]:
     """The readout request every rung starts from: one token, no sampling, logprobs on."""
     if prefix.mode == "raw":
         body: dict[str, Any] = {
             "model": model,
-            "prompt": prefix.text + question.text,
+            "prompt": prefix.text + suffix,
             "max_tokens": 1,
             "temperature": 0,
             "stream": False,
@@ -50,9 +50,9 @@ def base_request(
         content.extend(
             {"type": "image_url", "image_url": {"url": image.data_uri}} for image in prefix.images
         )
-        content.append({"type": "text", "text": question.text})
+        content.append({"type": "text", "text": suffix})
     else:
-        content = prefix.text + question.text
+        content = prefix.text + suffix
     messages: list[dict[str, Any]] = []
     if prefix.system:
         messages.append({"role": "system", "content": prefix.system})
@@ -78,14 +78,16 @@ def parse_response(path: str, response: dict[str, Any], dialect: Dialect) -> Par
     choice = response["choices"][0]
     logprobs = choice.get("logprobs") or {}
     entries: list[Entry] = []
-    if path == "completions":
-        top = (logprobs.get("top_logprobs") or [{}])[0] or {}
-        entries = [Entry(text=text, logprob=float(lp)) for text, lp in top.items()]
-    else:
+    # Shape-driven, not dialect-driven: llama.cpp answers the completions route with the
+    # chat-style `content` list (ids included); OpenAI and vLLM use the dict form there.
+    if "content" in logprobs:
         content = logprobs.get("content") or []
         if content:
             for item in content[0].get("top_logprobs") or []:
                 entries.append(_entry_from(item, dialect))
+    else:
+        top = (logprobs.get("top_logprobs") or [{}])[0] or {}
+        entries = [Entry(text=text, logprob=float(lp)) for text, lp in top.items()]
     usage = response.get("usage") or {}
     details = usage.get("prompt_tokens_details") or {}
     cached = details.get("cached_tokens")

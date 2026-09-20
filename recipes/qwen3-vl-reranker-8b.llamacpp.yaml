@@ -1,0 +1,56 @@
+# Qwen3-VL-Reranker-8B (Q8_0 GGUF) served by llama.cpp on the local RTX 4090.
+# A reranker driven as a causal model through its own template: the fixed system line and
+# the query (our state) form the shared prefix; each question becomes the document, and the
+# trained yes/no readout answers it. Raw completions mode, so the control tokens are exact.
+# Token ids are unverified until `jevify probe` fills them from the server's /tokenize.
+schema_version: 1
+model:
+  name: qwen3-vl-reranker-8b
+  kind: endpoint
+  revision: Qwen3-VL-Reranker-8B.Q8_0.gguf + Qwen3-VL-Reranker-8B.mmproj-f16.gguf
+endpoint:
+  base_url: http://127.0.0.1:8081/v1
+  dialect: llamacpp
+  timeout_s: 300
+template:
+  mode: raw
+  # No empty think block: the Qwen3-VL base has no thinking mode, and measured on 2026-09-19
+  # the block spread the answer mass (p(yes|menu) 0.55 with it, 0.68 without, same statement).
+  raw: "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n<Instruct>: Judge whether the Document is a correct statement about, or the correct answer for, the Query.\n<Query>: {state}{question}<|im_end|>\n<|im_start|>assistant\n"
+  state_end: "\n"
+  questions:
+    # A yes/no reranker never emits identifier letters: score each option as the document.
+    choice_strategy: per_option
+    option_document: "<Document>: {instructions} The answer is: {key}{description}"
+    choice: "<Document>: {instructions} The options are:\n{options}\nThe correct option is the one with identifier"
+    option_line: "{identifier}. {key}{description}"
+    description_sep: " - "
+    score: "<Document>: {instructions} The levels are:\n{levels}\nThe applicable level is the one with identifier"
+    level_line: "{identifier}. {text}"
+    noul: "<Document>: {instructions}"
+answers:
+  noul:
+    "true":
+      - { text: "yes" }
+      - { text: "Yes" }
+    "false":
+      - { text: "no" }
+      - { text: "No" }
+  identifiers:
+    - [{ text: " A" }, { text: "A" }]
+    - [{ text: " B" }, { text: "B" }]
+    - [{ text: " C" }, { text: "C" }]
+    - [{ text: " D" }, { text: "D" }]
+    - [{ text: " E" }, { text: "E" }]
+    - [{ text: " F" }, { text: "F" }]
+    - [{ text: " G" }, { text: "G" }]
+    - [{ text: " H" }, { text: "H" }]
+readout:
+  rung: top_k
+  top_k: 20
+  permutation: none
+provenance:
+  author: Felipe Infante de Castro
+  created: "2026-09-19"
+  status: draft
+  launch: "llama-server -m ~/Work/models/Qwen3-VL-Reranker-8B.Q8_0.gguf --mmproj ~/Work/models/Qwen3-VL-Reranker-8B.mmproj-f16.gguf -c 32768 -ngl 99 --parallel 2 --port 8081 --cache-reuse 256 --slot-save-path ~/Work/runs/llama-slots"

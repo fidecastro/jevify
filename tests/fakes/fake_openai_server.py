@@ -38,6 +38,8 @@ class Behaviour:
     report_cached_tokens: bool = True
     background_logit: float = -3.0
     scores: dict[str, float] = field(default_factory=dict)
+    # (substring, scores): the first substring found in the prompt selects that score table.
+    scores_when: list[tuple[str, dict[str, float]]] = field(default_factory=list)
     rate_limit_first: int = 0
     version: str = "0.99.0-fake"
 
@@ -100,6 +102,10 @@ class FakeOpenAIServer:
             logits = {"\n": 0.0, "Okay": -0.5}
         else:
             logits = dict(b.scores)
+            for marker, table in b.scores_when:
+                if marker in prompt_tail:
+                    logits = dict(table)
+                    break
             for filler in FILLER_TOKENS:
                 logits.setdefault(filler, b.background_logit)
         if b.logprobs_mode == "processed":

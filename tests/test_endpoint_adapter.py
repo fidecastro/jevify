@@ -158,3 +158,32 @@ def test_label_missing_from_top_k_fails_loudly_on_pinned_top_k(fixtures, fake_se
     backend = build_backend(load_recipe(fixtures / "recipes" / "fake-vllm.yaml"), http=http)
     with pytest.raises(BackendError, match="false"):
         run(backend.evaluate(run(backend.warm(STATE)), [NoulQuestion(id="q", instructions="x")]))
+
+
+def test_per_option_choice_composes_yes_no_readouts(fixtures, fake_server_factory):
+    # The fake scores each option's document differently: billing gets yes, support gets no.
+    server, http = fake_server_factory(
+        Behaviour(
+            dialect="llamacpp",
+            scores_when=[
+                ("answer is: billing", {"yes": 0.0, "no": -2.0}),
+                ("answer is: support", {"yes": -2.0, "no": 0.0}),
+            ],
+        )
+    )
+    recipe = load_recipe(fixtures / "recipes" / "fake-raw.yaml")
+    recipe = recipe.model_copy(
+        update={"readout": recipe.readout.model_copy(update={"rung": "top_k"})}
+    )
+    backend = build_backend(recipe, http=http)
+    question = ChoiceQuestion(
+        id="dept", instructions="Which team?", options=(Option("billing"), Option("support"))
+    )
+    [answer] = run(backend.evaluate(run(backend.warm(STATE)), [question]))
+    assert answer.calls == 2
+    assert len(server.requests) == 2
+    d = Distribution.from_logprobs(answer.logprobs)
+    # Each option's score is its yes-minus-no logit: +2 and -2, so softmax gives e^4 : 1.
+    assert d.as_mapping()["billing"] == pytest.approx(math.exp(4) / (1 + math.exp(4)))
+    assert answer.off_menu_mass is None
+    assert answer.rung == "top_k"
