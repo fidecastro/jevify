@@ -15,7 +15,7 @@ from typing import Any
 
 from jevify import __version__
 from jevify.domain.engine import Engine
-from jevify.domain.questions import ChoiceQuestion, NoulQuestion, Option, ScoreQuestion, State
+from jevify.domain.questions import ChoiceQuestion, NoulQuestion, Option, ScoreQuestion
 from jevify.evaluation.metrics import (
     accuracy,
     brier_score,
@@ -25,7 +25,7 @@ from jevify.evaluation.metrics import (
     quantile,
     ranked_probability_score,
 )
-from jevify.evaluation.suites import Suite, SuiteRow
+from jevify.evaluation.suites import Suite, SuiteRow, row_state
 from jevify.recipes.schema import Recipe
 from jevify.recipes.store import recipe_hash
 
@@ -72,10 +72,10 @@ def _label_key(row: SuiteRow) -> str | None:
     return str(row.label)
 
 
-async def run_case(engine: Engine, row: SuiteRow) -> Decision:
+async def run_case(engine: Engine, row: SuiteRow, suite_path: str | Path = ".") -> Decision:
     question = _question(row)
     try:
-        evaluation = await engine.ask(State.from_jev(row.context), [question])
+        evaluation = await engine.ask(row_state(suite_path, row), [question])
     except Exception as exc:  # noqa: BLE001 - a failed case is a recorded decision, not a crash
         return Decision(
             case_id=row.case_id,
@@ -124,7 +124,7 @@ async def run_suite(engine: Engine, suite: Suite, *, concurrency: int = 1) -> li
 
     async def one(row: SuiteRow) -> Decision:
         async with gate:
-            return await run_case(engine, row)
+            return await run_case(engine, row, suite.path)
 
     return list(await asyncio.gather(*(one(row) for row in suite.rows)))
 

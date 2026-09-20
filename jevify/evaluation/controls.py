@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import replace
+from pathlib import Path
 from typing import Any
 
 from jevify.domain.engine import Engine
@@ -17,23 +18,30 @@ from jevify.evaluation.scorecard import Decision, run_case
 from jevify.evaluation.suites import Suite, SuiteRow
 
 
-async def _run(engine: Engine, rows: list[SuiteRow], concurrency: int) -> list[Decision]:
+async def _run(
+    engine: Engine, rows: list[SuiteRow], concurrency: int, suite_path: Path
+) -> list[Decision]:
     gate = asyncio.Semaphore(max(1, concurrency))
 
     async def one(row: SuiteRow) -> Decision:
         async with gate:
-            return await run_case(engine, row)
+            return await run_case(engine, row, suite_path)
 
     return list(await asyncio.gather(*(one(row) for row in rows)))
 
 
 async def shuffled_context(engine: Engine, suite: Suite, *, concurrency: int = 1) -> dict[str, Any]:
+    """Each case answered against the next case's state: its context text and its images."""
     rows = list(suite.rows)
     swapped = [
-        replace(row, context=rows[(index + 1) % len(rows)].context)
+        replace(
+            row,
+            context=rows[(index + 1) % len(rows)].context,
+            images=rows[(index + 1) % len(rows)].images,
+        )
         for index, row in enumerate(rows)
     ]
-    decisions = await _run(engine, swapped, concurrency)
+    decisions = await _run(engine, swapped, concurrency, suite.path)
     scored = [d for d in decisions if d.label is not None and not d.error]
     agreement = sum(d.selected == d.label for d in scored) / max(1, len(scored))
     return {
@@ -57,7 +65,7 @@ async def option_permutation(
         )
         for row in rows
     ]
-    decisions = await _run(engine, reversed_rows, concurrency)
+    decisions = await _run(engine, reversed_rows, concurrency, suite.path)
     by_id = {d.case_id: d for d in main}
     pairs = [(by_id[d.case_id], d) for d in decisions if d.case_id in by_id and not d.error]
     same = sum(original.selected == permuted.selected for original, permuted in pairs)

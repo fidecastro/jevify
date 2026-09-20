@@ -161,3 +161,48 @@ def test_summary_is_regenerated_from_raw(fixtures, fake_http_server_factory, tmp
     original = json.loads(Path(report["summary_json"]).read_text())
     assert again["metrics"] == original["metrics"]
     assert again["raw_sha256"] == original["raw_sha256"]
+
+
+def test_rows_may_carry_image_files_next_to_the_suite(tmp_path: Path) -> None:
+    """A row's `images` lists files relative to the suite; the loader checks they exist and
+    the manifest can pin their hashes, so a frame changed under a frozen suite is refused."""
+    import base64
+
+    from jevify.evaluation.suites import row_state
+
+    frames = tmp_path / "frames"
+    frames.mkdir()
+    png = b"\x89PNG fake frame"
+    (frames / "000.png").write_bytes(png)
+    row = {
+        "instruction": "What is on screen?",
+        "context": "Frame 0 of a game.",
+        "options": ["enemy", "nothing"],
+        "label": 0,
+        "case_id": "f0",
+        "images": ["frames/000.png"],
+    }
+    suite = tmp_path / "frames.jsonl"
+    suite.write_text(json.dumps(row) + "\n")
+    [loaded] = read_rows(suite)
+    assert loaded.images == ("frames/000.png",)
+    state = row_state(suite, loaded)
+    assert [type(part).__name__ for part in state.parts] == ["TextPart", "ImagePart"]
+    assert state.parts[1].data_uri == "data:image/png;base64," + base64.b64encode(png).decode()
+
+    suite.write_text(json.dumps({**row, "images": ["frames/missing.png"]}) + "\n")
+    with pytest.raises(SuiteError, match="missing.png"):
+        read_rows(suite)
+
+    suite.write_text(json.dumps(row) + "\n")
+    manifest = {
+        "name": "frames",
+        "sha256": suite_hash(suite),
+        "cases": 1,
+        "images_sha256": {"frames/000.png": hashlib.sha256(png).hexdigest()},
+    }
+    (tmp_path / "frames.manifest.json").write_text(json.dumps(manifest))
+    assert load_suite(suite).rows[0].images == ("frames/000.png",)
+    (frames / "000.png").write_bytes(b"\x89PNG tampered")
+    with pytest.raises(SuiteError, match="000.png"):
+        load_suite(suite)

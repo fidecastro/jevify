@@ -540,11 +540,11 @@ class Prober:
         warm_prefix, warm_reuse = await self._warm_reuse(state, dialect)
         if all(c is not None for _, c in observations):
             tails = {n - c for n, c in observations}  # type: ignore[operator]
-            if len(tails) == 1 and 0 <= (tail := tails.pop()) <= _MAX_REEVALUATED_TAIL:
-                if tail > 1:
+            if all(0 <= t <= _MAX_REEVALUATED_TAIL for t in tails):
+                if (tail := max(tails)) > 1:
                     self.notes.append(
-                        f"token-granular cache; the last {tail} prompt tokens are re-evaluated "
-                        "on every call"
+                        f"token-granular cache; up to {tail} trailing prompt tokens are "
+                        "re-evaluated on a call"
                     )
                 return CacheEvidence(1, first_ms, second_ms, last_cached, warm_prefix, warm_reuse)
         consistent = [

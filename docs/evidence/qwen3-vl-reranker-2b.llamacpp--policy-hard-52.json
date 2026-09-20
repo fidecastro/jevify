@@ -1,0 +1,263 @@
+{
+  "recipe": "recipes/qwen3-vl-reranker-2b.llamacpp.yaml",
+  "recipe_stem": "qwen3-vl-reranker-2b.llamacpp",
+  "recipe_hash": "f48b3d59989bb5f53e01d3dbf712362d483921eec179db6cfa795b3f3e630508",
+  "model": "qwen3-vl-reranker-2b",
+  "backend": {
+    "kind": "endpoint",
+    "dialect": "llamacpp",
+    "version": "b10809-5266f24da7",
+    "base_url": "http://127.0.0.1:8084/v1",
+    "probed_at": "2026-09-20T04:04:13+00:00"
+  },
+  "suite": "policy-hard-52",
+  "suite_file": "suites/policy-hard-52.jsonl",
+  "suite_sha256": "8e04af62c922c215f5575e4a985a2d948fcb7c023133bd8d2576633ae7c1e545",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T04:04:18+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/qwen3-vl-reranker-2b.llamacpp.yaml suites/policy-hard-52.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 52,
+      "agreement_with_label": 0.2692307692307692,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 52,
+      "same_choice": 0.8461538461538461,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "qwen3-vl-reranker-2b.llamacpp--policy-hard-52--20260920T040428Z.jsonl",
+  "raw_sha256": "e2d247cdc9b6e3d342f15224615dab588ad1f0cb2a24a3f629335c1f7834cce6",
+  "metrics": {
+    "cases": 52,
+    "scored": 52,
+    "errors": 0,
+    "accuracy": 0.6538461538461539,
+    "log_loss": 0.9016928635707758,
+    "brier": 0.5263556848485726,
+    "ece": 0.1865868617885227,
+    "groups": {
+      "distractor": {
+        "cases": 5,
+        "accuracy": 0.6
+      },
+      "flip": {
+        "cases": 9,
+        "accuracy": 0.3333333333333333
+      },
+      "long": {
+        "cases": 12,
+        "accuracy": 1.0
+      },
+      "negation": {
+        "cases": 8,
+        "accuracy": 0.875
+      },
+      "threshold": {
+        "cases": 18,
+        "accuracy": 0.5
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 47.36423601571005,
+      "p95": 55.078860642970525,
+      "mean": 47.82228028936795
+    },
+    "warm_ms": {
+      "median": 6.816783003159799,
+      "p95": 67.83160963968832
+    },
+    "cached_token_share": 0.32431760905831825
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 19,
+      "confidence": 0.37236125649620494,
+      "accuracy": 0.47368421052631576
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 15,
+      "confidence": 0.4555735800661282,
+      "accuracy": 0.6
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 14,
+      "confidence": 0.5508722867140485,
+      "accuracy": 0.8571428571428571
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 4,
+      "confidence": 0.6692008996450801,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "flip_1",
+      "label": "Cancel the subscription.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.08165471834230842
+    },
+    {
+      "case_id": "flip_2",
+      "label": "Cancel the subscription.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.01513835528767049
+    },
+    {
+      "case_id": "flip_3",
+      "label": "Keep promotional emails enabled.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.08581338252630644
+    },
+    {
+      "case_id": "flip_5",
+      "label": "Technical support",
+      "selected": "Billing and refunds",
+      "confidence": 0.02900302141892863
+    },
+    {
+      "case_id": "flip_6",
+      "label": "Sales",
+      "selected": "Billing and refunds",
+      "confidence": 0.02485736553948603
+    },
+    {
+      "case_id": "flip_8",
+      "label": "Angry",
+      "selected": "Grateful",
+      "confidence": 0.04353742580474418
+    },
+    {
+      "case_id": "negation_3",
+      "label": "Keep the order as delivered.",
+      "selected": "Cancel the order.",
+      "confidence": 0.025088012755339117
+    },
+    {
+      "case_id": "threshold_2",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.005753227409844186
+    },
+    {
+      "case_id": "threshold_3",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.008167111823603412
+    },
+    {
+      "case_id": "threshold_7",
+      "label": "Request director approval.",
+      "selected": "Request manager approval.",
+      "confidence": 0.00439165752596371
+    },
+    {
+      "case_id": "threshold_9",
+      "label": "Request manager approval.",
+      "selected": "Request director approval.",
+      "confidence": 0.006347207806492117
+    },
+    {
+      "case_id": "threshold_12",
+      "label": "Decline the request.",
+      "selected": "Grant a refund.",
+      "confidence": 0.005066535539294925
+    },
+    {
+      "case_id": "threshold_13",
+      "label": "Decline the request.",
+      "selected": "Grant a refund.",
+      "confidence": 5.749091761897418e-05
+    },
+    {
+      "case_id": "threshold_14",
+      "label": "Grant a refund.",
+      "selected": "Decline the request.",
+      "confidence": 0.006904547159531371
+    },
+    {
+      "case_id": "threshold_16",
+      "label": "Decline the request.",
+      "selected": "Grant a refund.",
+      "confidence": 0.0025388987751707726
+    },
+    {
+      "case_id": "threshold_17",
+      "label": "Grant a refund.",
+      "selected": "Decline the request.",
+      "confidence": 0.01245835566774689
+    },
+    {
+      "case_id": "distractor_0",
+      "label": "Technical support",
+      "selected": "Sales",
+      "confidence": 0.03747276908553676
+    },
+    {
+      "case_id": "distractor_4",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.0005394473118746079
+    }
+  ],
+  "failed": []
+}

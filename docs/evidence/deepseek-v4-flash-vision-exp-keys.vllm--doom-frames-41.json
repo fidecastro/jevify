@@ -1,0 +1,519 @@
+{
+  "recipe": "recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml",
+  "recipe_stem": "deepseek-v4-flash-vision-exp-keys.vllm",
+  "recipe_hash": "2d11f28d161422de24b0c9874cbe73f3f9841f56ced155f8efff1303113a6734",
+  "model": "deepseek-v4-flash-vision-exp-keys",
+  "backend": {
+    "kind": "endpoint",
+    "dialect": "vllm",
+    "version": "0.25.2.dev0+g752a3a504.d20260714",
+    "base_url": "http://192.168.2.20:8888/v1",
+    "probed_at": "2026-09-20T03:48:15+00:00"
+  },
+  "suite": "doom-frames-41",
+  "suite_file": "suites/doom-frames-41/doom-frames-41.jsonl",
+  "suite_sha256": "bafee8ec60591a2d5a1d13944b9e97c1124911fd3700ca741260c3e673b07eea",
+  "expected_answers_by": "the game engine (labels buffer) and a fixed expert rule",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T03:59:07+00:00",
+  "concurrency": 2,
+  "command": "jevify eval recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml suites/doom-frames-41/doom-frames-41.jsonl --concurrency 2 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 164,
+      "agreement_with_label": 0.6280487804878049,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 82,
+      "same_choice": 0.6829268292682927,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "deepseek-v4-flash-vision-exp-keys.vllm--doom-frames-41--20260920T040333Z.jsonl",
+  "raw_sha256": "9a7a6505d17c06a48d32372926e213d4463d07c492e2856bb4c0e69a1f60482b",
+  "metrics": {
+    "cases": 164,
+    "scored": 164,
+    "errors": 0,
+    "accuracy": 0.6280487804878049,
+    "log_loss": 3.010616856324723,
+    "brier": 0.6384025353878509,
+    "ece": 0.3030810986446124,
+    "score_mae": 0.20506381773240911,
+    "score_rps": 0.09076955270210714,
+    "groups": {
+      "enemy_count": {
+        "cases": 41,
+        "accuracy": 0.8292682926829268
+      },
+      "enemy_side": {
+        "cases": 41,
+        "accuracy": 0.5609756097560976
+      },
+      "enemy_visible": {
+        "cases": 41,
+        "accuracy": 0.8780487804878049
+      },
+      "expert_action": {
+        "cases": 41,
+        "accuracy": 0.24390243902439024
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 672.049369502929,
+      "p95": 740.1020348770544,
+      "mean": 677.3825858718938
+    },
+    "warm_ms": {
+      "median": 842.4455210042652,
+      "p95": 999.3842747979215
+    },
+    "cached_token_share": 0.022161144415348322
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 3,
+      "confidence": 0.47823646093978517,
+      "accuracy": 0.3333333333333333
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 7,
+      "confidence": 0.5611491646172716,
+      "accuracy": 0.14285714285714285
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 5,
+      "confidence": 0.6571622159568296,
+      "accuracy": 0.2
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 7,
+      "confidence": 0.7467458821629318,
+      "accuracy": 0.5714285714285714
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 11,
+      "confidence": 0.8631687722422615,
+      "accuracy": 0.36363636363636365
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 131,
+      "confidence": 0.987287464831959,
+      "accuracy": 0.7022900763358778
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "action_0",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9312956032649822
+    },
+    {
+      "case_id": "action_1",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.8803462037682217
+    },
+    {
+      "case_id": "action_2",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.986248954725467
+    },
+    {
+      "case_id": "side_3",
+      "label": "right",
+      "selected": "left",
+      "confidence": 0.42361377974512415
+    },
+    {
+      "case_id": "action_3",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9975425252286968
+    },
+    {
+      "case_id": "action_4",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.9989843745348206
+    },
+    {
+      "case_id": "action_5",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.9974300828822565
+    },
+    {
+      "case_id": "side_6",
+      "label": "right",
+      "selected": "left",
+      "confidence": 0.8936042224732743
+    },
+    {
+      "case_id": "action_6",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9986206699733365
+    },
+    {
+      "case_id": "action_7",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.9985448054901127
+    },
+    {
+      "case_id": "side_8",
+      "label": "right",
+      "selected": "left",
+      "confidence": 0.7859385673245635
+    },
+    {
+      "case_id": "action_8",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9948932347310686
+    },
+    {
+      "case_id": "action_9",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.9938431357479086
+    },
+    {
+      "case_id": "action_10",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.7543170980933999
+    },
+    {
+      "case_id": "action_11",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9958906276897564
+    },
+    {
+      "case_id": "side_12",
+      "label": "right",
+      "selected": "left",
+      "confidence": 0.8164740312186715
+    },
+    {
+      "case_id": "action_12",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9613762224827865
+    },
+    {
+      "case_id": "action_13",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.992495697446134
+    },
+    {
+      "case_id": "side_14",
+      "label": "right",
+      "selected": "left",
+      "confidence": 0.42653911205398154
+    },
+    {
+      "case_id": "action_14",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9998780050880499
+    },
+    {
+      "case_id": "action_15",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.9830570878459765
+    },
+    {
+      "case_id": "side_16",
+      "label": "right",
+      "selected": "centre",
+      "confidence": 0.5155088679714841
+    },
+    {
+      "case_id": "action_16",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9997746643467288
+    },
+    {
+      "case_id": "side_17",
+      "label": "left",
+      "selected": "centre",
+      "confidence": 0.3745941285334823
+    },
+    {
+      "case_id": "action_17",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.9996498406890264
+    },
+    {
+      "case_id": "side_18",
+      "label": "right",
+      "selected": "left",
+      "confidence": 0.2938078011588787
+    },
+    {
+      "case_id": "action_18",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9827827269369815
+    },
+    {
+      "case_id": "side_19",
+      "label": "right",
+      "selected": "left",
+      "confidence": 0.44260091786215905
+    },
+    {
+      "case_id": "action_19",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9612062174367476
+    },
+    {
+      "case_id": "action_20",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.6991670945209423
+    },
+    {
+      "case_id": "side_21",
+      "label": "right",
+      "selected": "left",
+      "confidence": 0.39172503059913244
+    },
+    {
+      "case_id": "action_21",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9308426202458988
+    },
+    {
+      "case_id": "side_22",
+      "label": "right",
+      "selected": "left",
+      "confidence": 0.8019973046980368
+    },
+    {
+      "case_id": "action_22",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9682959380611535
+    },
+    {
+      "case_id": "visible_24",
+      "label": "false",
+      "selected": "true",
+      "confidence": 0.9976609610437166
+    },
+    {
+      "case_id": "side_24",
+      "label": "none",
+      "selected": "centre",
+      "confidence": 0.9401048519484095
+    },
+    {
+      "case_id": "count_24",
+      "label": "0",
+      "selected": "1",
+      "confidence": 0.9758202208776915
+    },
+    {
+      "case_id": "action_24",
+      "label": "move forward",
+      "selected": "attack",
+      "confidence": 0.9997195868992077
+    },
+    {
+      "case_id": "visible_25",
+      "label": "false",
+      "selected": "true",
+      "confidence": 0.24444053639524532
+    },
+    {
+      "case_id": "side_25",
+      "label": "none",
+      "selected": "centre",
+      "confidence": 0.6803993065478041
+    },
+    {
+      "case_id": "action_25",
+      "label": "move forward",
+      "selected": "attack",
+      "confidence": 0.6430857609247995
+    },
+    {
+      "case_id": "visible_26",
+      "label": "true",
+      "selected": "false",
+      "confidence": 0.12483223443872005
+    },
+    {
+      "case_id": "side_26",
+      "label": "left",
+      "selected": "centre",
+      "confidence": 0.6715703247541515
+    },
+    {
+      "case_id": "count_26",
+      "label": "1",
+      "selected": "0",
+      "confidence": 0.6147975245262719
+    },
+    {
+      "case_id": "action_26",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.6342143220971965
+    },
+    {
+      "case_id": "count_27",
+      "label": "2",
+      "selected": "1",
+      "confidence": 0.8452423239724254
+    },
+    {
+      "case_id": "action_27",
+      "label": "turn left",
+      "selected": "attack",
+      "confidence": 0.9685342949613661
+    },
+    {
+      "case_id": "count_28",
+      "label": "2",
+      "selected": "1",
+      "confidence": 0.9990575784810842
+    },
+    {
+      "case_id": "side_29",
+      "label": "right",
+      "selected": "centre",
+      "confidence": 0.9997983359712277
+    },
+    {
+      "case_id": "action_29",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.9997841582759944
+    },
+    {
+      "case_id": "visible_30",
+      "label": "false",
+      "selected": "true",
+      "confidence": 0.4619761663805708
+    },
+    {
+      "case_id": "side_30",
+      "label": "none",
+      "selected": "left",
+      "confidence": 0.6505183785156734
+    },
+    {
+      "case_id": "count_30",
+      "label": "0",
+      "selected": "2",
+      "confidence": 0.6566239393470701
+    },
+    {
+      "case_id": "action_30",
+      "label": "move forward",
+      "selected": "attack",
+      "confidence": 0.8815014453858487
+    },
+    {
+      "case_id": "visible_31",
+      "label": "false",
+      "selected": "true",
+      "confidence": 0.76143875706737
+    },
+    {
+      "case_id": "side_31",
+      "label": "none",
+      "selected": "centre",
+      "confidence": 0.9933230373567987
+    },
+    {
+      "case_id": "count_31",
+      "label": "0",
+      "selected": "1",
+      "confidence": 0.9157880694428197
+    },
+    {
+      "case_id": "side_32",
+      "label": "centre",
+      "selected": "right",
+      "confidence": 0.8557814415026198
+    },
+    {
+      "case_id": "count_32",
+      "label": "2",
+      "selected": "1",
+      "confidence": 0.8212778704291536
+    },
+    {
+      "case_id": "action_32",
+      "label": "attack",
+      "selected": "move forward",
+      "confidence": 0.6466888551277847
+    },
+    {
+      "case_id": "action_33",
+      "label": "turn right",
+      "selected": "attack",
+      "confidence": 0.6449853232531042
+    }
+  ],
+  "failed": []
+}

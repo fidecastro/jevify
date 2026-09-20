@@ -1,0 +1,186 @@
+schema_version: 1
+model:
+  name: gemma-4-e4b-it
+  kind: endpoint
+  revision: unsloth/gemma-4-E4B-it-GGUF gemma-4-E4B-it-Q8_0.gguf + mmproj-F16.gguf
+endpoint:
+  base_url: http://127.0.0.1:8083/v1
+  dialect: llamacpp
+  timeout_s: 300.0
+template:
+  mode: messages
+  system: You answer typed questions about the state with a single token.
+  state: 'State:
+
+    {state}'
+  state_end: '
+
+
+    '
+  kwargs:
+    enable_thinking: false
+  image_marker: <__media__>
+  questions:
+    choice: 'Question: {instructions}
+
+      Options:
+
+      {options}
+
+      Answer with the identifier of the best option.'
+    option_line: '{identifier}. {key}{description}'
+    description_sep: ': '
+    score: 'Question: {instructions}
+
+      Levels:
+
+      {levels}
+
+      Answer with the identifier of the level that applies.'
+    level_line: '{identifier}. {text}'
+    noul: 'Question: {instructions}
+
+      Answer with exactly one word, yes or no.'
+    choice_strategy: identifiers
+answers:
+  noul:
+    'true':
+    - text: 'yes'
+      id: 4443
+    - text: 'Yes'
+      id: 10784
+    - text: ' yes'
+      id: 11262
+    - text: ' Yes'
+      id: 8438
+    'false':
+    - text: 'no'
+      id: 1904
+    - text: 'No'
+      id: 3771
+    - text: ' no'
+      id: 951
+    - text: ' No'
+      id: 2301
+  identifiers:
+  - - text: A
+      id: 236776
+    - text: ' A'
+      id: 562
+  - - text: B
+      id: 236799
+    - text: ' B'
+      id: 603
+  - - text: C
+      id: 236780
+    - text: ' C'
+      id: 565
+  - - text: D
+      id: 236796
+    - text: ' D'
+      id: 622
+  - - text: E
+      id: 236788
+    - text: ' E'
+      id: 645
+  - - text: F
+      id: 236811
+    - text: ' F'
+      id: 633
+  - - text: G
+      id: 236823
+    - text: ' G'
+      id: 667
+  - - text: H
+      id: 236814
+    - text: ' H'
+      id: 640
+  - - text: I
+      id: 236777
+    - text: ' I'
+      id: 564
+  - - text: J
+      id: 236863
+    - text: ' J'
+      id: 730
+readout:
+  rung: auto
+  top_k: 20
+  permutation: none
+  permutation_calls: 1
+probe:
+  kind: endpoint
+  model: gemma-4-e4b-it
+  dialect: llamacpp
+  backend_version: b10809-5266f24da7
+  max_context: 8192
+  modalities:
+  - image
+  - text
+  rungs:
+  - top_k
+  - equal_bias
+  - top_k_floor
+  top_k_cap: null
+  logprobs_post_bias: true
+  prefill_honored: null
+  template_kwargs_honored: true
+  token_ids_verified: true
+  answer_tokens:
+    'yes': 4443
+    'Yes': 10784
+    ' yes': 11262
+    ' Yes': 8438
+    'no': 1904
+    'No': 3771
+    ' no': 951
+    ' No': 2301
+    A: 236776
+    ' A': 562
+    B: 236799
+    ' B': 603
+    C: 236780
+    ' C': 565
+    D: 236796
+    ' D': 622
+    E: 236788
+    ' E': 645
+    F: 236811
+    ' F': 633
+    G: 236823
+    ' G': 667
+    H: 236814
+    ' H': 640
+    I: 236777
+    ' I': 564
+    J: 236863
+    ' J': 730
+  multi_token_answers: []
+  cache:
+    block_tokens: null
+    first_ms: 45.09905001032166
+    second_ms: 17.270522977923974
+    cached_tokens: 917
+    warm_prefix_tokens: 902
+    warm_reuse_tokens: 897
+  fanout:
+    concurrency: 1
+    concurrent_ms: 31.137043988564983
+    sequential_ms: 34.421149000991136
+  slots: 2
+  probed_at: '2026-09-20T03:56:02+00:00'
+  notes:
+  - grammar accepted but the reported probabilities are not constrained by it; the grammar rung is not
+    proven on this build
+  - cached-token counts [(361, 356), (672, 671), (918, 917)] fit no block size candidate
+  image_marker: <__media__>
+provenance:
+  author: Felipe Infante de Castro
+  created: '2026-09-20'
+  status: probed
+  launch: LLAMA_MEDIA_MARKER='<__media__>' llama-server -m ~/Work/models/gemma-4-E4B-it/gemma-4-E4B-it-Q8_0.gguf
+    --mmproj ~/Work/models/gemma-4-E4B-it/mmproj-F16.gguf -c 16384 -ngl 99 --parallel 2 --port 8083 --cache-reuse
+    256 --jinja
+  notes:
+  - 'The small general instruct VLM: the fair comparison to Bonsai (27B ternary) and the reranker.'
+  scorecards: []

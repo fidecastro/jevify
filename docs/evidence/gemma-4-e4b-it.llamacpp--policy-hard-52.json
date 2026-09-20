@@ -1,0 +1,197 @@
+{
+  "recipe": "recipes/gemma-4-e4b-it.llamacpp.yaml",
+  "recipe_stem": "gemma-4-e4b-it.llamacpp",
+  "recipe_hash": "22181ad02a27f7c7958d40132340cef25e7e9b0c1d32a068b330745a16054bad",
+  "model": "gemma-4-e4b-it",
+  "backend": {
+    "kind": "endpoint",
+    "dialect": "llamacpp",
+    "version": "b10809-5266f24da7",
+    "base_url": "http://127.0.0.1:8083/v1",
+    "probed_at": "2026-09-20T03:56:02+00:00"
+  },
+  "suite": "policy-hard-52",
+  "suite_file": "suites/policy-hard-52.jsonl",
+  "suite_sha256": "8e04af62c922c215f5575e4a985a2d948fcb7c023133bd8d2576633ae7c1e545",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T03:56:08+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/gemma-4-e4b-it.llamacpp.yaml suites/policy-hard-52.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 52,
+      "agreement_with_label": 0.2692307692307692,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 52,
+      "same_choice": 0.9615384615384616,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "gemma-4-e4b-it.llamacpp--policy-hard-52--20260920T035621Z.jsonl",
+  "raw_sha256": "39ffe82709cac6dfde756f39e7e7c246b85d737f2a4d119cd82e6f6fce7ebfc9",
+  "metrics": {
+    "cases": 52,
+    "scored": 52,
+    "errors": 0,
+    "accuracy": 0.8653846153846154,
+    "log_loss": 0.9340011355754092,
+    "brier": 0.2478909639401377,
+    "ece": 0.12852462193166245,
+    "groups": {
+      "distractor": {
+        "cases": 5,
+        "accuracy": 0.8
+      },
+      "flip": {
+        "cases": 9,
+        "accuracy": 0.5555555555555556
+      },
+      "long": {
+        "cases": 12,
+        "accuracy": 1.0
+      },
+      "negation": {
+        "cases": 8,
+        "accuracy": 1.0
+      },
+      "threshold": {
+        "cases": 18,
+        "accuracy": 0.8888888888888888
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 28.232468001078814,
+      "p95": 35.4481368442066,
+      "mean": 29.4343418628649
+    },
+    "warm_ms": {
+      "median": 36.51887450541835,
+      "p95": 168.34723965585
+    },
+    "cached_token_share": 0.8391579167319647
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 1,
+      "confidence": 0.752305557994508,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 3,
+      "confidence": 0.8276923389451647,
+      "accuracy": 0.3333333333333333
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 48,
+      "confidence": 0.9990106017001138,
+      "accuracy": 0.8958333333333334
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "flip_1",
+      "label": "Cancel the subscription.",
+      "selected": "Keep promotional emails enabled.",
+      "confidence": 0.975717777989662
+    },
+    {
+      "case_id": "flip_2",
+      "label": "Cancel the subscription.",
+      "selected": "Keep promotional emails enabled.",
+      "confidence": 0.9990815630677812
+    },
+    {
+      "case_id": "flip_3",
+      "label": "Keep promotional emails enabled.",
+      "selected": "Disable promotional emails and keep the subscription active.",
+      "confidence": 0.9998977565095685
+    },
+    {
+      "case_id": "flip_6",
+      "label": "Sales",
+      "selected": "Technical support",
+      "confidence": 0.9364694553458741
+    },
+    {
+      "case_id": "threshold_10",
+      "label": "Grant a refund.",
+      "selected": "Issue store credit.",
+      "confidence": 0.575749419500015
+    },
+    {
+      "case_id": "threshold_15",
+      "label": "Grant a refund.",
+      "selected": "Decline the request.",
+      "confidence": 0.9998752592031976
+    },
+    {
+      "case_id": "distractor_1",
+      "label": "Sales",
+      "selected": "Technical support",
+      "confidence": 0.5998342970103994
+    }
+  ],
+  "failed": []
+}

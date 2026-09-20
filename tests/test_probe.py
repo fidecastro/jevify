@@ -173,7 +173,7 @@ def test_probe_reads_a_token_granular_cache_with_a_reevaluated_tail(fixtures, fa
         recipe_name="fake-raw.yaml",
     )
     assert caps.cache is not None and caps.cache.block_tokens == 1
-    assert any("last 4 prompt tokens" in note for note in caps.notes)
+    assert any("up to 4 trailing prompt tokens" in note for note in caps.notes)
 
 
 def test_probe_names_a_grammar_that_does_not_constrain_probabilities(fixtures, fake_server_factory):

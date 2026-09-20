@@ -1,0 +1,191 @@
+{
+  "recipe": "recipes/qwen3-vl-reranker-2b.llamacpp.yaml",
+  "recipe_stem": "qwen3-vl-reranker-2b.llamacpp",
+  "recipe_hash": "f48b3d59989bb5f53e01d3dbf712362d483921eec179db6cfa795b3f3e630508",
+  "model": "qwen3-vl-reranker-2b",
+  "backend": {
+    "kind": "endpoint",
+    "dialect": "llamacpp",
+    "version": "b10809-5266f24da7",
+    "base_url": "http://127.0.0.1:8084/v1",
+    "probed_at": "2026-09-20T04:04:13+00:00"
+  },
+  "suite": "policy-29",
+  "suite_file": "suites/policy-29.jsonl",
+  "suite_sha256": "c59cb29f97e78e67472206dd544c833c65bf06632d7de093760daff627b78015",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T04:04:13+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/qwen3-vl-reranker-2b.llamacpp.yaml suites/policy-29.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 29,
+      "agreement_with_label": 0.3103448275862069,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 29,
+      "same_choice": 0.8620689655172413,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "qwen3-vl-reranker-2b.llamacpp--policy-29--20260920T040418Z.jsonl",
+  "raw_sha256": "405e02196ae46be593f1b34148c1555ad3d69162c72301c9844557a11f486166",
+  "metrics": {
+    "cases": 29,
+    "scored": 29,
+    "errors": 0,
+    "accuracy": 0.7241379310344828,
+    "log_loss": 0.7942344139678966,
+    "brier": 0.469263065351503,
+    "ece": 0.23722848448768233,
+    "groups": {
+      "diagnostic": {
+        "cases": 23,
+        "accuracy": 0.6956521739130435
+      },
+      "original": {
+        "cases": 6,
+        "accuracy": 0.8333333333333334
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 49.36039404128678,
+      "p95": 51.883702201303095,
+      "mean": 47.35479647883792
+    },
+    "warm_ms": {
+      "median": 6.896145001519471,
+      "p95": 11.801644804654641
+    },
+    "cached_token_share": 0.3150764466808593
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 11,
+      "confidence": 0.38016280193691276,
+      "accuracy": 0.5454545454545454
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 7,
+      "confidence": 0.4452279453565057,
+      "accuracy": 0.7142857142857143
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 7,
+      "confidence": 0.5634384809617318,
+      "accuracy": 0.8571428571428571
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 3,
+      "confidence": 0.6656899429206787,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 1,
+      "confidence": 0.880848315561473,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "original_4",
+      "label": "Insufficient information to determine tomorrow's delivery.",
+      "selected": "The parcel will not arrive tomorrow.",
+      "confidence": 0.03483586636866698
+    },
+    {
+      "case_id": "diagnostic_6_pointwise_instruction_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.03928231443942054
+    },
+    {
+      "case_id": "diagnostic_7_question_format_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.020221039976487054
+    },
+    {
+      "case_id": "diagnostic_14_amount_50_original",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.0032334045580212356
+    },
+    {
+      "case_id": "diagnostic_15_amount_50_question",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.012391655232259824
+    },
+    {
+      "case_id": "diagnostic_17_amount_74_question",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.003530967983304323
+    },
+    {
+      "case_id": "diagnostic_19_amount_75_question",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.014856717407387476
+    },
+    {
+      "case_id": "diagnostic_25_instruction_flip",
+      "label": "Cancel the subscription.",
+      "selected": "Keep the subscription active.",
+      "confidence": 0.0047563531435294015
+    }
+  ],
+  "failed": []
+}

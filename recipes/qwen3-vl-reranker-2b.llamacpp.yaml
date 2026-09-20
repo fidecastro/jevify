@@ -1,0 +1,166 @@
+schema_version: 1
+model:
+  name: qwen3-vl-reranker-2b
+  kind: endpoint
+  revision: mradermacher/Qwen3-VL-Reranker-2B-GGUF Qwen3-VL-Reranker-2B.Q8_0.gguf + Qwen3-VL-Reranker-2B.mmproj-f16.gguf
+endpoint:
+  base_url: http://127.0.0.1:8084/v1
+  dialect: llamacpp
+  timeout_s: 300.0
+template:
+  mode: raw
+  state: '{state}'
+  state_end: '
+
+    '
+  raw: '<|im_start|>system
+
+    Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note
+    that the answer can only be "yes" or "no".<|im_end|>
+
+    <|im_start|>user
+
+    <Instruct>: Judge whether the Document is a correct statement about, or the correct answer for, the
+    Query.
+
+    <Query>: {state}{question}<|im_end|>
+
+    <|im_start|>assistant
+
+    '
+  kwargs: {}
+  image_marker: <__media__>
+  questions:
+    choice: '<Document>: {instructions} The options are:
+
+      {options}
+
+      The correct option is the one with identifier'
+    option_line: '{identifier}. {key}{description}'
+    description_sep: ' - '
+    score: '<Document>: {instructions} The levels are:
+
+      {levels}
+
+      The applicable level is the one with identifier'
+    level_line: '{identifier}. {text}'
+    noul: '<Document>: {instructions}'
+    choice_strategy: per_option
+    option_document: '<Document>: {instructions} The answer is: {key}{description}'
+answers:
+  noul:
+    'true':
+    - text: 'yes'
+      id: 9693
+    - text: 'Yes'
+      id: 9454
+    'false':
+    - text: 'no'
+      id: 2152
+    - text: 'No'
+      id: 2753
+  identifiers:
+  - - text: ' A'
+      id: 362
+    - text: A
+      id: 32
+  - - text: ' B'
+      id: 425
+    - text: B
+      id: 33
+  - - text: ' C'
+      id: 356
+    - text: C
+      id: 34
+  - - text: ' D'
+      id: 422
+    - text: D
+      id: 35
+  - - text: ' E'
+      id: 468
+    - text: E
+      id: 36
+  - - text: ' F'
+      id: 434
+    - text: F
+      id: 37
+  - - text: ' G'
+      id: 479
+    - text: G
+      id: 38
+  - - text: ' H'
+      id: 472
+    - text: H
+      id: 39
+readout:
+  rung: auto
+  top_k: 20
+  permutation: none
+  permutation_calls: 1
+probe:
+  kind: endpoint
+  model: qwen3-vl-reranker-2b
+  dialect: llamacpp
+  backend_version: b10809-5266f24da7
+  max_context: 16384
+  modalities:
+  - image
+  - text
+  rungs:
+  - grammar
+  - top_k
+  - equal_bias
+  - top_k_floor
+  top_k_cap: null
+  logprobs_post_bias: true
+  prefill_honored: null
+  template_kwargs_honored: null
+  token_ids_verified: true
+  answer_tokens:
+    'yes': 9693
+    'Yes': 9454
+    'no': 2152
+    'No': 2753
+    ' A': 362
+    A: 32
+    ' B': 425
+    B: 33
+    ' C': 356
+    C: 34
+    ' D': 422
+    D: 35
+    ' E': 468
+    E: 36
+    ' F': 434
+    F: 37
+    ' G': 479
+    G: 38
+    ' H': 472
+    H: 39
+  multi_token_answers: []
+  cache:
+    block_tokens: 1
+    first_ms: 13.486073003150523
+    second_ms: 6.555516010848805
+    cached_tokens: 948
+    warm_prefix_tokens: 940
+    warm_reuse_tokens: 940
+  fanout:
+    concurrency: 1
+    concurrent_ms: 11.41123499837704
+    sequential_ms: 12.796679977327585
+  slots: 2
+  probed_at: '2026-09-20T04:04:13+00:00'
+  notes: []
+  image_marker: <__media__>
+provenance:
+  author: Felipe Infante de Castro
+  created: '2026-09-20'
+  status: probed
+  launch: LLAMA_MEDIA_MARKER='<__media__>' llama-server -m ~/Work/models/qwen3-vl-reranker-2b/Qwen3-VL-Reranker-2B.Q8_0.gguf
+    --mmproj ~/Work/models/qwen3-vl-reranker-2b/Qwen3-VL-Reranker-2B.mmproj-f16.gguf -c 32768 -ngl 99
+    --parallel 2 --port 8084 --cache-reuse 256
+  notes:
+  - The small end of the Qwen3-VL reranker line; same raw-mode template and per-option yes/no readout
+    as the 8B recipe.
+  scorecards: []

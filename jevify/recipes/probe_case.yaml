@@ -2,7 +2,7 @@
 # no prompt text lives in a Python module (INV-6). The state is long enough (well over
 # a thousand tokens on common tokenizers) that prefix-cache block granularity is visible.
 # Markers that mean "the template opened a reasoning block": the probe checks the rendered tail.
-think_markers: ["<think>"]
+think_markers: ["<think>", "<|think|>"]
 # A closed, empty block (Qwen3.5-style templates with thinking off) is not thinking.
 think_close_markers: ["</think>"]
 statement: "The customer threatens to cancel the subscription."

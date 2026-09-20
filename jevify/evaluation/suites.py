@@ -9,11 +9,14 @@ list ordered levels as options).
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
+
+from jevify.domain.questions import ImagePart, State, TextPart
 
 
 class SuiteError(ValueError):
@@ -32,6 +35,7 @@ class SuiteRow:
     label: int | None
     group: str = "default"
     question_type: QuestionType = "choice"
+    images: tuple[str, ...] = ()  # PNG/JPEG files, paths relative to the suite file
 
 
 @dataclass(frozen=True)
@@ -83,6 +87,12 @@ def read_rows(path: str | Path) -> list[SuiteRow]:
             question_type = row.get("question_type", "choice")
             if question_type not in ("choice", "noul", "score"):
                 raise SuiteError(f"line {number}: unknown question_type {question_type!r}")
+            images = row.get("images") or []
+            if not isinstance(images, list) or any(not isinstance(i, str) for i in images):
+                raise SuiteError(f"line {number}: images must be a list of relative paths")
+            for image in images:
+                if not (Path(path).parent / image).is_file():
+                    raise SuiteError(f"line {number}: image {image} not found next to the suite")
             rows.append(
                 SuiteRow(
                     case_id=case_id,
@@ -92,6 +102,7 @@ def read_rows(path: str | Path) -> list[SuiteRow]:
                     label=label,
                     group=str(row.get("group") or "default"),
                     question_type=question_type,
+                    images=tuple(images),
                 )
             )
     if not rows:
@@ -124,4 +135,32 @@ def load_suite(path: str | Path) -> Suite:
     rows = read_rows(source)
     if manifest.get("cases") not in (None, len(rows)):
         raise SuiteError(f"{source}: manifest says {manifest['cases']} cases, file has {len(rows)}")
+    pinned = manifest.get("images_sha256") or {}
+    for image in sorted({i for row in rows for i in row.images}):
+        if image in pinned:
+            actual = hashlib.sha256((source.parent / image).read_bytes()).hexdigest()
+            if actual != pinned[image]:
+                raise SuiteError(
+                    f"{source}: image {image} sha256 {actual[:12]} does not match the manifest"
+                )
     return Suite(path=source, rows=tuple(rows), manifest=manifest)
+
+
+_MEDIA_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+}
+
+
+def row_state(suite_path: str | Path, row: SuiteRow) -> State:
+    """The state a row asks about: its context text, then its images as data URIs. The
+    files are read here, at run time, so a suite never carries binary blobs in git."""
+    parts: list[TextPart | ImagePart] = [TextPart(row.context)]
+    for image in row.images:
+        file = Path(suite_path).parent / image
+        media = _MEDIA_TYPES.get(file.suffix.lower(), "image/png")
+        payload = base64.b64encode(file.read_bytes()).decode("ascii")
+        parts.append(ImagePart(f"data:{media};base64,{payload}"))
+    return State(tuple(parts))
