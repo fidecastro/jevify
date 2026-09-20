@@ -59,10 +59,12 @@ and `answers`.
   for a model that never emits letters, such as a reranker).
 - `answers.noul.true/false` and `answers.identifiers` list token spellings;
   the probe fills their ids.
-- `readout.rung: auto` picks the strongest rung the probe proved:
+- `readout.rung: auto` walks the rungs the probe proved, strongest first:
   `named_token_logprobs` (vLLM with `logprob_token_ids`), `grammar`
   (llama.cpp), `top_k`, `equal_bias`, `top_k_floor` (degraded, missing
-  labels floored and listed).
+  labels floored and listed). A rung that cannot see every label hands the
+  question to the next; the answer names the rung that read it. A pinned rung
+  never walks: it fails loudly instead.
 
 **`rerank`**: `endpoint` plus `rerank: {path, query, document, instruction,
 score_field}`. Choice and noul only; semantics `relevance`.
@@ -114,10 +116,22 @@ Jev's fields come first (`choice`, `confidence`, `probabilities`; `score`,
   message names the limit. Shorten the state or raise the server's context.
 - **`logit_bias` rejected**: vLLM under speculative decoding; the ladder
   falls back to `top_k`.
-- **llama.cpp refuses a GGUF type**: the build lacks that quantization (Ternary
-  Bonsai's `PQ2_0` needs a newer build); the recipe stays `draft`.
+- **llama.cpp refuses a GGUF type**: the build lacks that quantization. Ternary
+  Bonsai's `PQ2_0` needs the PrismML fork (branch `prism`), launched with
+  `--jinja` so template kwargs reach the template; the recipe records the
+  launch line.
 - **Multi-token identifiers**: the probe reports `multi_token_answers`; pick
   spellings that are single tokens for that tokenizer (the recipe lists them).
+- **Images accepted but ignored on llama.cpp's native route**: the server draws
+  a random media marker per process and exposes it in `/props`; the probe
+  reads it, proves the image adds prompt tokens, and writes the marker into
+  `template.image_marker`. Launch with `LLAMA_MEDIA_MARKER='<__media__>'` so
+  the recipe survives restarts.
+- **Warm buys nothing** (`cache.warm_reuse_tokens` near zero in the probe): a
+  hybrid model with recurrent layers on llama.cpp resumes only from a
+  checkpoint at the end of an earlier prompt, and a chat template closes the
+  user turn right after the state. Use `template.mode: raw` so the warm prompt
+  ends at the state boundary; the Bonsai recipe is the example.
 - **Missing encoder extra**: the error names the install command.
 
 ## House rules that bind you here

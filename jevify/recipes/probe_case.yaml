@@ -3,6 +3,8 @@
 # a thousand tokens on common tokenizers) that prefix-cache block granularity is visible.
 # Markers that mean "the template opened a reasoning block": the probe checks the rendered tail.
 think_markers: ["<think>"]
+# A closed, empty block (Qwen3.5-style templates with thinking off) is not thinking.
+think_close_markers: ["</think>"]
 statement: "The customer threatens to cancel the subscription."
 contradiction: "The customer is pleased with the service."
 state: |

@@ -104,3 +104,43 @@ def test_pinned_unproven_rung_fails_loudly(fixtures, fake_server_factory):
     backend = build_backend(recipe, http=http)
     with pytest.raises(BackendError, match="did not prove"):
         run(backend.evaluate(run(backend.warm(STATE)), [Q]))
+
+
+def test_auto_walks_down_the_ladder_when_a_label_is_outside_the_top_k(
+    fixtures, fake_server_factory
+):
+    """Auto is a ladder, not a pick: when the strongest proven rung cannot read every label
+    it hands the question to the next proven rung, and the answer names the rung that read
+    it. With only the floor left, the answer is floored and marked degraded."""
+    # " no" sits far below five fillers, so it never reaches the top-5 the recipe reads.
+    server, http = fake_server_factory(
+        Behaviour(
+            logprobs_mode="processed",
+            top_k_cap=5,
+            scores={" yes": 0.0, " no": -9.0, "yes": -0.5, "no": -8.0},
+        )
+    )
+    recipe = with_probe(
+        load_recipe(fixtures / "recipes" / "fake-vllm.yaml"),
+        ["top_k", "equal_bias", "top_k_floor"],
+    )
+    backend = build_backend(recipe, http=http)
+    [answer] = run(backend.evaluate(run(backend.warm(STATE)), [Q]))
+    assert answer.rung == "equal_bias"
+    assert answer.degraded is False and answer.missing == ()
+    # the same question with only the floor below top_k: floored, degraded, missing named
+    server, http = fake_server_factory(Behaviour(top_k_cap=5, scores={" yes": 0.0, " no": -9.0}))
+    recipe = with_probe(
+        load_recipe(fixtures / "recipes" / "fake-vllm.yaml"), ["top_k", "top_k_floor"]
+    )
+    backend = build_backend(recipe, http=http)
+    [answer] = run(backend.evaluate(run(backend.warm(STATE)), [Q]))
+    assert answer.rung == "top_k_floor" and answer.degraded is True
+    assert answer.missing == ("false",)
+    # a pinned rung never walks: it fails loudly, as before
+    recipe = with_probe(
+        load_recipe(fixtures / "recipes" / "fake-vllm.yaml"), ["top_k", "top_k_floor"], rung="top_k"
+    )
+    backend = build_backend(recipe, http=http)
+    with pytest.raises(BackendError, match="not in the top-"):
+        run(backend.evaluate(run(backend.warm(STATE)), [Q]))

@@ -43,11 +43,15 @@ def base_request(
         if prefix.images:
             if dialect is not Dialect.LLAMACPP:
                 raise ValueError("raw-mode images need the llama.cpp native completion route")
-            # Verified live on build 10809: top-level prompt string with one media marker per
-            # image, plus a top-level multimodal_data list of raw base64 payloads.
+            # llama.cpp's documented shape: a prompt object with the text (one media marker
+            # per image, the marker the server reports in /props) and the base64 payloads.
+            # A top-level multimodal_data key is accepted and silently ignored: the image
+            # never reaches the model. The probe checks that an image adds prompt tokens.
             return "completion", {
-                "prompt": prefix.text + suffix,
-                "multimodal_data": [_base64_payload(i.data_uri) for i in prefix.images],
+                "prompt": {
+                    "prompt_string": prefix.text + suffix,
+                    "multimodal_data": [_base64_payload(i.data_uri) for i in prefix.images],
+                },
                 "n_predict": 1,
                 "temperature": 0,
                 "stream": False,

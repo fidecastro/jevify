@@ -72,6 +72,8 @@ def apply_probe(recipe: Recipe, capabilities: Any) -> Recipe:
         for group in document["answers"]["identifiers"]:
             for token in group:
                 token["id"] = capabilities.answer_tokens.get(token["text"], token.get("id"))
+    if capabilities.image_marker and document.get("template"):
+        document["template"]["image_marker"] = capabilities.image_marker
     if document.get("endpoint") and capabilities.dialect:
         document["endpoint"]["dialect"] = str(capabilities.dialect)
     if document["provenance"]["status"] == "draft":

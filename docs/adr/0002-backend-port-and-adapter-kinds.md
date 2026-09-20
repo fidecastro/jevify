@@ -121,6 +121,16 @@ allows, in this order:
 The method used is recorded on every answer. A recipe may pin a rung; it may
 not skip the ladder's recording.
 
+Amended 2026-09-20, after the first hybrid model on llama.cpp: `auto` walks
+the proven rungs rather than picking one. When the strongest rung reads the
+answer slot but not every label (a label outside the top-k), the next proven
+rung takes the question, down to the floor; the answer names the rung that
+read it. A pinned rung never walks and fails loudly, as before. The probe
+also proves two things it used to assume: that an image adds prompt tokens
+(a server can accept an image and drop it), and how much of a warm prefix a
+question request reuses (a recurrent model resumes only from a checkpoint at
+the end of an earlier prompt, so a chat-template warm can buy nothing).
+
 ### D5 — Choice questions on decoders
 
 Options are labeled with single-token identifiers and the distribution is

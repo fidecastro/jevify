@@ -148,3 +148,73 @@ def test_probe_refuses_when_no_readout_is_possible(fixtures, fake_server_factory
     recipe = load_recipe(fixtures / "recipes" / "fake-vllm.yaml")
     with pytest.raises(Exception, match="no readout"):
         run(build_backend(recipe, http=http).probe())
+
+
+def test_probe_accepts_a_closed_empty_think_block_as_thinking_off(fixtures, fake_server_factory):
+    """Qwen3.5-style templates spell thinking off as `<think>\\n\\n</think>\\n\\n`."""
+    _, caps = probe_with(
+        fixtures, fake_server_factory, Behaviour(scores=SCORES, thinking_off_style="empty_block")
+    )
+    assert caps.template_kwargs_honored is True
+
+
+def test_probe_reads_a_token_granular_cache_with_a_reevaluated_tail(fixtures, fake_server_factory):
+    """llama.cpp reports every prompt token cached except a few trailing ones it recomputes."""
+    _, caps = probe_with(
+        fixtures,
+        fake_server_factory,
+        Behaviour(
+            dialect="llamacpp",
+            scores=RAW_SCORES,
+            max_context=100_000,
+            block_tokens=1,
+            cache_tail_tokens=4,
+        ),
+        recipe_name="fake-raw.yaml",
+    )
+    assert caps.cache is not None and caps.cache.block_tokens == 1
+    assert any("last 4 prompt tokens" in note for note in caps.notes)
+
+
+def test_probe_names_a_grammar_that_does_not_constrain_probabilities(fixtures, fake_server_factory):
+    from jevify.ports.backend import Rung
+
+    _, caps = probe_with(
+        fixtures,
+        fake_server_factory,
+        Behaviour(dialect="llamacpp", scores=RAW_SCORES, grammar=False),
+        recipe_name="fake-raw.yaml",
+    )
+    assert Rung.GRAMMAR not in caps.rungs
+    assert any("grammar rung is not proven" in note for note in caps.notes)
+
+
+def test_probe_measures_whether_a_warm_prefix_is_reused_by_a_question(
+    fixtures, fake_server_factory
+):
+    """A hybrid model on llama.cpp resumes only from a checkpoint at the end of an earlier
+    prompt. A messages-mode warm ends inside the template's assistant turn, so no question
+    prompt extends it; a raw-mode warm ends at the state boundary and every question does."""
+    _, caps = probe_with(
+        fixtures,
+        fake_server_factory,
+        Behaviour(
+            dialect="llamacpp",
+            scores=RAW_SCORES,
+            max_context=100_000,
+            block_tokens=1,
+            checkpoint_reuse_only=True,
+        ),
+        recipe_name="fake-raw.yaml",
+    )
+    assert caps.cache is not None
+    assert caps.cache.warm_prefix_tokens and caps.cache.warm_reuse_tokens
+    assert caps.cache.warm_reuse_tokens >= caps.cache.warm_prefix_tokens - 2
+    _, caps = probe_with(
+        fixtures,
+        fake_server_factory,
+        Behaviour(scores=SCORES, max_context=100_000, block_tokens=1, checkpoint_reuse_only=True),
+        recipe_name="fake-vllm.yaml",
+    )
+    assert caps.cache is not None and caps.cache.warm_reuse_tokens == 0
+    assert any("warm prefix is not reused" in note for note in caps.notes)

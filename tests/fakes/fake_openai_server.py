@@ -34,6 +34,12 @@ class Behaviour:
     supports_tokenize: bool = True
     thinking_kwarg: str | None = "thinking"
     thinking_default_on: bool = True
+    # how the template spells "thinking off": nothing, or a closed empty block (Qwen3.5)
+    thinking_off_style: str = "omit"
+    cache_tail_tokens: int = 0  # trailing prompt tokens never reported cached (llama.cpp)
+    # a recurrent (hybrid) model on llama.cpp resumes only from a checkpoint saved at the end
+    # of an earlier prompt: a prefix is reused only if some earlier prompt was exactly it
+    checkpoint_reuse_only: bool = False
     prefill: Literal["honored", "eos_appended", "rejected"] = "eos_appended"
     max_context: int = 512
     block_tokens: int = 256
@@ -52,6 +58,8 @@ class Behaviour:
     rerank_scores: dict[str, float] = field(default_factory=dict)  # document text -> score
     embeddings: dict[str, list[float]] = field(default_factory=dict)  # text -> vector
     multimodal: bool = False  # accept image content parts / native multimodal_data
+    media_marker: str = "<__media__>"  # llama.cpp's per-process marker, exposed in /props
+    image_tokens: int = 64  # prompt tokens one seen image adds (0 = accepted but dropped)
     # answer texts that tokenize to two tokens on this "model" (probe must catch them)
     multi_token_answers: set[str] = field(default_factory=set)
 
@@ -118,6 +126,7 @@ class FakeOpenAIServer:
         self.in_flight = 0
         self.max_in_flight = 0
         self.slot_blocks: dict[int, set[tuple[int, ...]]] = {}
+        self.completed_prompts: dict[int, list[tuple[int, ...]]] = {}
         self.seen_blocks: set[tuple[int, ...]] = set()
         self._served = 0
         routes = [
@@ -223,12 +232,19 @@ class FakeOpenAIServer:
             if self.behaviour.prefill == "eos_appended":
                 parts.append("<eos>")
             return "".join(parts)
-        parts.append("<|assistant|>" + (THINK_OPEN if thinking_on else ""))
+        if thinking_on:
+            parts.append("<|assistant|>" + THINK_OPEN)
+        elif self.behaviour.thinking_off_style == "empty_block":
+            parts.append("<|assistant|>" + THINK_OPEN + "\n\n</think>\n\n")
+        else:
+            parts.append("<|assistant|>")
         return "".join(parts)
 
-    async def _cache_and_usage(self, prompt: str, body: dict[str, Any]) -> dict[str, Any]:
+    async def _cache_and_usage(
+        self, prompt: str, body: dict[str, Any], image_tokens: int = 0
+    ) -> dict[str, Any]:
         ids = self.tokenizer.encode(prompt)
-        n = len(ids)
+        n = len(ids) + image_tokens
         cached = 0
         b = self.behaviour
         blocks = [tuple(ids[i : i + b.block_tokens]) for i in range(0, n, b.block_tokens)]
@@ -245,6 +261,15 @@ class FakeOpenAIServer:
             else:
                 break
         seen.update(full_blocks)
+        if b.checkpoint_reuse_only:
+            done = self.completed_prompts.setdefault(
+                int(body.get("id_slot", 0) or 0) % max(1, b.slots), []
+            )
+            cached = max(
+                (len(p) for p in done if tuple(ids[: len(p)]) == p and len(p) <= n), default=0
+            )
+            done.append(tuple(ids))
+        cached = max(0, min(cached, n - b.cache_tail_tokens))
         if b.simulate_latency:
             hit = full_blocks and cached == len(full_blocks) * b.block_tokens
             await anyio.sleep((b.warm_ms if hit else b.cold_ms) / 1000.0)
@@ -302,10 +327,15 @@ class FakeOpenAIServer:
         prompt = self._rendered_chat(body)
         if (bad := self._too_long(prompt)) is not None:
             return bad
+        images = sum(
+            sum(1 for p in m["content"] if p.get("type") == "image_url")
+            for m in body["messages"]
+            if isinstance(m.get("content"), list)
+        )
         logprobs = self._distribution(prompt, body)
         entries = self._entries(logprobs, body)
         sampled = max(logprobs.items(), key=lambda kv: kv[1])
-        usage = await self._cache_and_usage(prompt, body)
+        usage = await self._cache_and_usage(prompt, body, images * self.behaviour.image_tokens)
         content_entry = self._content_entry(sampled, entries, body)
         return self._record(
             {
@@ -412,17 +442,26 @@ class FakeOpenAIServer:
         if (gated := self._gate(body, "/completion")) is not None:
             return gated
         prompt = body["prompt"]
+        images = 0
         if isinstance(prompt, dict):
             if not self.behaviour.multimodal:
                 return JSONResponse(
                     {"error": {"message": "multimodal not supported"}}, status_code=400
                 )
+            images = len(prompt.get("multimodal_data") or [])
             prompt = prompt["prompt_string"]
+            if prompt.count(self.behaviour.media_marker) != images:
+                # the real server: marker count must match the bitmaps, else 400
+                self.in_flight -= 1
+                return JSONResponse(
+                    {"error": {"message": "Failed to tokenize prompt"}}, status_code=400
+                )
+        # a top-level multimodal_data next to a string prompt is ignored, as on the server
         body.setdefault("logprobs", body.get("n_probs", 0))
         logprobs = self._distribution(prompt, body)
         entries = self._entries(logprobs, body)
         sampled = max(logprobs.items(), key=lambda kv: kv[1])
-        usage = await self._cache_and_usage(prompt, body)
+        usage = await self._cache_and_usage(prompt, body, images * self.behaviour.image_tokens)
         return self._record(
             {
                 "content": sampled[0],
@@ -501,6 +540,8 @@ class FakeOpenAIServer:
                 "build_info": f"b{self.behaviour.version}",
                 "total_slots": self.behaviour.slots,
                 "default_generation_settings": {"n_ctx": self.behaviour.max_context},
+                "media_marker": self.behaviour.media_marker,
+                "modalities": {"vision": self.behaviour.multimodal, "audio": False},
             }
         )
 

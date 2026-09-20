@@ -40,6 +40,7 @@ Clock = Callable[[], float]
 
 _PROBE_CASE = Path(__file__).resolve().parents[2] / "recipes" / "probe_case.yaml"
 _BLOCK_CANDIDATES = (1, 16, 32, 64, 128, 256, 512, 1024, 2048)
+_MAX_REEVALUATED_TAIL = 8  # llama.cpp re-evaluates a few trailing tokens; still token-granular
 
 
 def _one_pixel_png() -> str:
@@ -81,6 +82,7 @@ class Prober:
         self.recipe = recipe
         self.clock = clock
         self.notes: list[str] = []
+        self.image_marker: str | None = None
 
     async def run(self) -> Capabilities:
         assert self.recipe.endpoint is not None
@@ -137,6 +139,7 @@ class Prober:
             logprobs_post_bias=post_bias,
             prefill_honored=prefill,
             template_kwargs_honored=kwargs_honored,
+            image_marker=self.image_marker,
             token_ids_verified=verified,
             answer_tokens=answer_tokens,
             multi_token_answers=tuple(multi),
@@ -264,9 +267,14 @@ class Prober:
         except BackendError:
             self.notes.append("could not render the template server-side; thinking state unknown")
             return None
-        tail = rendered.rstrip()[-40:]
-        markers = load_probe_case().get("think_markers") or []
-        return not any(marker in tail for marker in markers)
+        case = load_probe_case()
+        opens = case.get("think_markers") or []
+        closes = case.get("think_close_markers") or []
+        last_open = max((rendered.rfind(m) for m in opens), default=-1)
+        if last_open < 0:
+            return True
+        # An open block that the template closes again (an empty think block) is thinking off.
+        return any(rendered.find(c, last_open) >= 0 for c in closes)
 
     # ------------------------------------------------------------------ readout checks
     async def _readout(self, prefix, part: RenderedPart, dialect: Dialect, top_k: int):
@@ -347,7 +355,13 @@ class Prober:
         parsed = parse_response(path, response, dialect)
         if not parsed.entries:
             return False
-        return all(any(t.startswith(e.text) for t in texts) for e in parsed.entries)
+        if all(any(t.startswith(e.text) for t in texts) for e in parsed.entries):
+            return True
+        self.notes.append(
+            "grammar accepted but the reported probabilities are not constrained by it; "
+            "the grammar rung is not proven on this build"
+        )
+        return False
 
     async def _prefill_honored(self, dialect: Dialect) -> bool | None:
         if not self.recipe.template.prefill:
@@ -388,30 +402,69 @@ class Prober:
 
     # ------------------------------------------------------------------ modalities
     async def _accepts_image(self, dialect: Dialect) -> bool:
-        """Send a one-pixel PNG the way this recipe would send any image; accepted means
-        the modality is proven, anything else means it is not."""
+        """Send a one-pixel PNG the way this recipe would send any image, and the same
+        request without it. The modality is proven only when the image adds prompt tokens:
+        a server can accept an image and silently drop it (llama.cpp's native route does
+        when the recipe's media marker is not the marker the server generated for this
+        process), and an accepted-but-unseen image would answer from text alone."""
         from jevify.domain.questions import ImagePart, State, TextPart
 
-        state = State((TextPart("probe image"), ImagePart(_one_pixel_png())))
-        try:
-            prefix = render_prefix(self.recipe, state)
-            part = render_question(
-                self.recipe, NoulQuestion(id="image", instructions="The image is blank.")
-            ).parts[0]
-            path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
-        except ValueError as exc:
-            self.notes.append(f"images not sendable with this recipe: {exc}")
+        recipe = self.recipe
+        if dialect is Dialect.LLAMACPP:
+            try:
+                props = await self.client.get_root("props")
+            except BackendError:
+                props = {}
+            marker = props.get("media_marker")
+            if marker and recipe.template is not None:
+                self.image_marker = str(marker)
+                if str(marker) != recipe.template.image_marker:
+                    self.notes.append(
+                        f"server media marker {marker!r} written into template.image_marker; "
+                        "llama.cpp draws a new one per process unless LLAMA_MEDIA_MARKER is "
+                        "set at launch, so pin it or re-probe after every restart"
+                    )
+                recipe = recipe.model_copy(
+                    update={"template": recipe.template.model_copy(update={"image_marker": marker})}
+                )
+        with_image = State((TextPart("probe image"), ImagePart(_one_pixel_png())))
+        without = State((TextPart("probe image"),))
+        counts: list[int | None] = []
+        for state in (with_image, without):
+            try:
+                prefix = render_prefix(recipe, state)
+                part = render_question(
+                    recipe, NoulQuestion(id="image", instructions="The image is blank.")
+                ).parts[0]
+                path, body = base_request(recipe.model.name, prefix, part.text, dialect)
+            except ValueError as exc:
+                self.notes.append(f"images not sendable with this recipe: {exc}")
+                return False
+            body["logprobs"] = True if "messages" in body else 1
+            if "messages" in body:
+                body["top_logprobs"] = 1
+            post = self.client.post_root if path == "completion" else self.client.post_v1
+            try:
+                parsed = parse_response(path, await post(path, body), dialect)
+            except BackendError as exc:
+                self.notes.append(f"image part rejected: {exc}")
+                return False
+            if not parsed.entries:
+                return False
+            counts.append(parsed.prompt_tokens)
+        seen, text_only = counts
+        if seen is None or text_only is None:
+            self.notes.append(
+                "image accepted; the server reports no prompt token counts, so whether the "
+                "image is seen is unproven"
+            )
             return False
-        body["logprobs"] = True if "messages" in body else 1
-        if "messages" in body:
-            body["top_logprobs"] = 1
-        post = self.client.post_root if path == "completion" else self.client.post_v1
-        try:
-            parsed = parse_response(path, await post(path, body), dialect)
-        except BackendError as exc:
-            self.notes.append(f"image part rejected: {exc}")
+        if seen <= text_only:
+            self.notes.append(
+                f"image accepted but not seen: {seen} prompt tokens with it, {text_only} without"
+            )
             return False
-        return bool(parsed.entries)
+        return True
 
     # ------------------------------------------------------------------ fan-out
     async def _slots(self, dialect: Dialect) -> int | None:
@@ -484,15 +537,53 @@ class Prober:
                 "backend reports no cached-token count; cache evidence is timing only"
             )
             return CacheEvidence(None, first_ms, second_ms, None)
+        warm_prefix, warm_reuse = await self._warm_reuse(state, dialect)
+        if all(c is not None for _, c in observations):
+            tails = {n - c for n, c in observations}  # type: ignore[operator]
+            if len(tails) == 1 and 0 <= (tail := tails.pop()) <= _MAX_REEVALUATED_TAIL:
+                if tail > 1:
+                    self.notes.append(
+                        f"token-granular cache; the last {tail} prompt tokens are re-evaluated "
+                        "on every call"
+                    )
+                return CacheEvidence(1, first_ms, second_ms, last_cached, warm_prefix, warm_reuse)
         consistent = [
             b
             for b in _BLOCK_CANDIDATES
-            if all(
-                (c is not None) and ((c >= n - 1) if b == 1 else (c == b * (n // b)))
-                for n, c in observations
-            )
+            if b > 1 and all((c is not None) and (c == b * (n // b)) for n, c in observations)
         ]
         block = consistent[0] if consistent else None
         if block is None:
             self.notes.append(f"cached-token counts {observations} fit no block size candidate")
-        return CacheEvidence(block, first_ms, second_ms, last_cached)
+        return CacheEvidence(block, first_ms, second_ms, last_cached, warm_prefix, warm_reuse)
+
+    async def _warm_reuse(self, state: State, dialect: Dialect) -> tuple[int | None, int | None]:
+        """Send the warm form (prefix only), then a question over the same state, and read
+        how much of the prefix the question reused. Chat templates close the user turn after
+        the state, so a messages-mode warm may end at a prompt no question extends; a
+        recurrent model on llama.cpp can then resume nothing (it resumes from checkpoints at
+        the end of earlier prompts), while a KV-cache model still reuses the shared tokens."""
+        prefix = render_prefix(self.recipe, state)
+        path, body = base_request(self.recipe.model.name, prefix, "", dialect)
+        body["logprobs"] = True if "messages" in body else 1
+        if "messages" in body:
+            body["top_logprobs"] = 1
+        post = self.client.post_root if path == "completion" else self.client.post_v1
+        warm = parse_response(path, await post(path, body), dialect)
+        part = render_question(
+            self.recipe, NoulQuestion(id="reuse", instructions="warm reuse probe")
+        ).parts[0]
+        path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
+        body["logprobs"] = True if "messages" in body else 1
+        if "messages" in body:
+            body["top_logprobs"] = 1
+        question = parse_response(path, await post(path, body), dialect)
+        if warm.prompt_tokens is None or question.cached_tokens is None:
+            return None, None
+        if warm.prompt_tokens > 0 and question.cached_tokens < warm.prompt_tokens // 2:
+            self.notes.append(
+                f"warm prefix is not reused by question requests ({question.cached_tokens} of "
+                f"{warm.prompt_tokens} prefix tokens); on a recurrent model use raw mode so the "
+                "warm prompt ends at the state boundary"
+            )
+        return warm.prompt_tokens, question.cached_tokens

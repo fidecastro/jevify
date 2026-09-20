@@ -46,6 +46,10 @@ class CacheEvidence:
     first_ms: float | None
     second_ms: float | None
     cached_tokens: int | None
+    # a warm (prefix-only) request followed by a question: how much of the prefix the
+    # question request reused. Zero means the warm bought nothing on this backend.
+    warm_prefix_tokens: int | None = None
+    warm_reuse_tokens: int | None = None
 
 
 @dataclass(frozen=True)
@@ -78,6 +82,8 @@ class Capabilities:
     slots: int | None = None  # llama.cpp parallel slots, each with its own cache
     probed_at: str | None = None
     notes: tuple[str, ...] = ()
+    # the server's media marker for raw-mode images (llama.cpp randomizes it per process)
+    image_marker: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """A plain, YAML-friendly record for the recipe's `probe` section."""

@@ -61,6 +61,11 @@ def read_answer_set(parsed: Parsed, question: RenderedPart, *, full_softmax: boo
     return Readout(per_label, off_menu, tuple(missing), degraded=bool(missing))
 
 
+class MissingLabelsError(BackendError):
+    """A rung that read the answer slot but not every label. On the auto ladder the next
+    proven rung takes the question; a pinned rung lets it surface."""
+
+
 class TopKRung:
     """Rung 3: ask for the top-k list unbiased; exact when every answer token is present."""
 
@@ -81,7 +86,7 @@ class TopKRung:
     def read(parsed: Parsed, question: RenderedPart) -> Readout:
         readout = read_answer_set(parsed, question, full_softmax=True)
         if readout.missing:
-            raise BackendError(
+            raise MissingLabelsError(
                 f"labels {list(readout.missing)} not in the top-{len(parsed.entries)} logprobs; "
                 "raise readout.top_k or pin readout.rung to top_k_floor"
             )

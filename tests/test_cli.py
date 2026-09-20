@@ -106,5 +106,7 @@ def test_ask_rung_override_and_image_flag(fixtures, fake_http_server_factory, tm
     assert body["answers"]["red"]["x_jevify"]["rung"] == "grammar"
     request = live.server.requests[-1]
     assert request["path"] == "/completion"
-    assert request["multimodal_data"] == [base64.b64encode(b"\x89PNG fake bytes").decode()]
+    assert request["prompt"]["multimodal_data"] == [
+        base64.b64encode(b"\x89PNG fake bytes").decode()
+    ]
     assert "grammar" in request and request["post_sampling_probs"] is True

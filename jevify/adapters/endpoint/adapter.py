@@ -11,7 +11,7 @@ from collections.abc import Callable, Sequence
 
 from jevify.adapters.endpoint.client import OpenAICompatibleClient
 from jevify.adapters.endpoint.dialects import base_request, parse_response
-from jevify.adapters.endpoint.readout import RUNGS
+from jevify.adapters.endpoint.readout import RUNGS, MissingLabelsError
 from jevify.domain.distribution import Distribution
 from jevify.domain.questions import Question, State
 from jevify.ports.backend import (
@@ -95,15 +95,30 @@ class EndpointBackend:
         )
 
     async def evaluate(self, handle: StateHandle, questions: Sequence[Question]) -> list[RawAnswer]:
-        rung = self._resolve_rung()
+        ladder = self._ladder()
         gate = asyncio.Semaphore(self.concurrency)
 
         async def one(index: int, question: Question) -> RawAnswer:
             slot = handle.slots[index % len(handle.slots)] if handle.slots else None
             async with gate:
-                return await self._answer(handle, question, rung, slot)
+                for step, rung in enumerate(ladder):
+                    try:
+                        return await self._answer(handle, question, rung, slot)
+                    except MissingLabelsError:
+                        if step == len(ladder) - 1:
+                            raise
+                raise AssertionError("unreachable: the ladder is never empty")
 
         return list(await asyncio.gather(*(one(i, q) for i, q in enumerate(questions))))
+
+    def _ladder(self) -> list[Rung]:
+        """The rungs a question may be read on, strongest first. A pinned rung stands alone
+        and fails loudly; auto walks every proven rung down to the floor."""
+        strongest = self._resolve_rung()
+        if self.recipe.readout.rung != "auto":
+            return [strongest]
+        proven = Capabilities.from_dict(self.recipe.probe).rungs if self.recipe.probe else set()
+        return [r for r in RUNG_RANK if r in proven and r in RUNGS]
 
     def _resolve_rung(self) -> Rung:
         pinned = self.recipe.readout.rung

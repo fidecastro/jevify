@@ -127,3 +127,40 @@ def test_probe_detects_image_parts_accepted(fixtures, fake_server_factory):
         build_backend(load_recipe(fixtures / "recipes" / "fake-vllm.yaml"), http=http).probe()
     )
     assert "image" not in caps.modalities
+
+
+def test_probe_reads_the_server_media_marker_and_writes_it_into_the_recipe(
+    fixtures, fake_server_factory
+):
+    """llama.cpp draws a media marker per process and exposes it in /props; a prompt with
+    any other marker is accepted with the image silently dropped."""
+    from jevify.recipes.store import apply_probe
+
+    server, http = fake_server_factory(
+        Behaviour(
+            dialect="llamacpp",
+            multimodal=True,
+            media_marker="<__media_k3j9__>",
+            scores={"yes": 0.0, "no": -1.0},
+            max_context=100_000,
+        )
+    )
+    recipe = load_recipe(fixtures / "recipes" / "fake-raw.yaml")
+    caps = run(build_backend(recipe, http=http).probe())
+    assert "image" in caps.modalities
+    assert caps.image_marker == "<__media_k3j9__>"
+    assert any("LLAMA_MEDIA_MARKER" in note for note in caps.notes)
+    assert apply_probe(recipe, caps).template.image_marker == "<__media_k3j9__>"
+
+
+def test_probe_refuses_an_image_that_is_accepted_but_not_seen(fixtures, fake_server_factory):
+    server, http = fake_server_factory(
+        Behaviour(
+            multimodal=True, image_tokens=0, scores={" yes": 0.0, " no": -1.0}, max_context=100_000
+        )
+    )
+    caps = run(
+        build_backend(load_recipe(fixtures / "recipes" / "fake-vllm.yaml"), http=http).probe()
+    )
+    assert "image" not in caps.modalities
+    assert any("accepted but not seen" in note for note in caps.notes)

@@ -145,9 +145,12 @@ def test_raw_multimodal_uses_native_completion_with_media_marker(fixtures, fake_
     [answer] = run(backend.evaluate(run(backend.warm(state)), [Q]))
     req = server.requests[-1]
     assert req["path"] == "/completion"
-    assert req["multimodal_data"] == [png]
-    assert "<__media__>" in req["prompt"]
-    assert req["prompt"].index("Screenshot") < req["prompt"].index("<__media__>")
+    prompt = req["prompt"]
+    assert prompt["multimodal_data"] == [png]
+    assert "<__media__>" in prompt["prompt_string"]
+    assert prompt["prompt_string"].index("Screenshot") < prompt["prompt_string"].index(
+        "<__media__>"
+    )
     assert set(answer.logprobs) == {"false", "true"}
 
 
