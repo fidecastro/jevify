@@ -160,5 +160,7 @@ number and the previous wording. The edit and the ADR land in the same commit.
 | `docs/adr/0001-…` onward | One decision each: context, decision, consequences, rejected alternatives. |
 | `docs/evidence/` | Committed scorecard summaries and calibration evidence, each derived from a recorded run. |
 | `AGENTS.md` | How work is done: the four engineering principles and house rules. |
+| `SKILL.md` | How an agent operates jevify: recipes, probe, ask, eval, serve, and what the outputs mean. |
 | `recipes/` | Recipe files, one per model per adapter kind, hashed. |
-| `suites/` | Frozen evaluation suites, hashed. |
+| `suites/` | Frozen evaluation suites, hashed; recorded frames stay out of git and are pinned by hash. |
+| `tools/` | Suite authoring scripts, the Doom recorder and player. |

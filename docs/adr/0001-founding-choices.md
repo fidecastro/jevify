@@ -39,10 +39,8 @@ all, numbers that can be checked.
 ### D1 — Name
 
 The project, the repository, the folder and the Python package are **jevify**,
-after the verb. The name JevCake, considered first, is reserved by the
-founder for a possible adapter between Jev-shaped decision engines and
-DevCake; that adapter may or may not use jevify as a backend and is not this
-project.
+after the verb: to jevify a model is to make it answer typed questions in one
+pass. Other names considered are listed under rejected alternatives.
 
 ### D2 — Scope
 
@@ -53,8 +51,7 @@ and an API are non-goals (`docs/00-invariants.md` §6).
 
 ### D3 — Licence
 
-MIT, since 2026-09-20. The founding choice was GPL-3.0, matching DevCake; the
-founder relicensed once the harness existed, so that it can be embedded as a
+MIT, since 2026-09-20. The founding choice was GPL-3.0; the founder relicensed once the harness existed, so that it can be embedded as a
 library, in a Jev SDK adapter or in a proprietary service, without a
 process-boundary argument. Every line in the tree at the time of the change
 was the author's own work (the only ported code came from the author's
@@ -65,17 +62,17 @@ tree. Copyleft sources may not enter: MIT cannot carry them.
 
 ### D4 — Toolchain
 
-Python **3.12** as the floor, matching DevCake's images so a future DevCake
-port has no toolchain gap. Dependencies are declared in `pyproject.toml`; the
-core depends on nothing heavier than an HTTP client. Model libraries are
+Python **3.12** as the floor: current enough for modern typing and `asyncio`,
+old enough to be on every host the author runs. Dependencies are declared in
+`pyproject.toml`; the core depends on nothing heavier than an HTTP client. Model libraries are
 optional extras per adapter kind, so a user who only talks to endpoints never
 installs PyTorch.
 
 ### D5 — Engineering principles
 
-The four principles in `AGENTS.md`, adopted from DevCake: Always Works, TDD at
-public seams, SOLID with ports and one composition root, and one authoritative
-path per singular process (DevCake ADR-0034). They bind every change.
+The four principles in `AGENTS.md`: Always Works, TDD at public seams, SOLID
+with ports and one composition root, and one authoritative path per singular
+process. They bind every change.
 
 ### D6 — Repository layout
 
@@ -113,17 +110,18 @@ summaries are committed.
   anything back. Accepted (2026-09-20); the earlier GPL-3.0 reasoning, that
   jevify would only ever be used as a service over HTTP, stopped holding once
   the adapter kinds became importable modules.
-- Python 3.12 excludes some older hosts. Accepted for DevCake alignment.
+- Python 3.12 excludes some older hosts. Accepted; the floor is revisited
+  when a user needs 3.11.
 - The optional-extras rule means the encoder, reranker and embedding adapters
   cannot be exercised by the base install; CI installs the extras it tests.
 
 ## Rejected alternatives
 
-- **JevCake as the name.** Sibling naming with DevCake was attractive; the
-  founder reserved it for the DevCake-side adapter instead.
-- **Staying on GPL-3.0.** Consistent with DevCake, but it would have kept
-  jevify out of any proprietary caller. Reversed on 2026-09-20 in favour of MIT;
+- **JevCake as the name.** Considered first; the founder kept it for another
+  project.
+- **Staying on GPL-3.0.** It would have kept jevify out of any proprietary
+  caller. Reversed on 2026-09-20 in favour of MIT;
   Apache-2.0 was not taken because the author wanted the shortest permissive
   text and no patent clause to explain.
-- **Python 3.10 floor**, which the precursors used. Rejected for the DevCake
-  alignment reason in D4.
+- **Python 3.10 floor**, which the precursors used. Rejected for the reason
+  in D4.

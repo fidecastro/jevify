@@ -56,9 +56,9 @@ def png_bytes(rgb: np.ndarray) -> bytes:
     )
 
 
-def make_game(seed: int) -> vzd.DoomGame:
+def make_game(seed: int, scenario: str = SCENARIO) -> vzd.DoomGame:
     game = vzd.DoomGame()
-    game.load_config(str(Path(vzd.scenarios_path) / f"{SCENARIO}.cfg"))
+    game.load_config(str(Path(vzd.scenarios_path) / f"{scenario}.cfg"))
     game.set_window_visible(False)
     game.set_mode(vzd.Mode.PLAYER)
     game.set_screen_resolution(vzd.ScreenResolution.RES_640X480)

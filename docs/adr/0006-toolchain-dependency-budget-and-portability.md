@@ -41,8 +41,8 @@ runtime in core.
 
 ### D3 — Python versions
 
-`requires-python = ">=3.12"`. The 3.12 floor from ADR-0001 stands for
-DevCake alignment; 3.14 satisfies it and is where local development happens.
+`requires-python = ">=3.12"`. The 3.12 floor from ADR-0001 stands; 3.14
+satisfies it and is where local development happens.
 CI runs 3.12 and 3.14 on Linux and macOS. The `encoder` extra is exercised
 in CI on Linux 3.12 only until its 3.14 wheels are confirmed there. No
 3.14-only syntax enters the tree; ruff's target version enforces it.
@@ -82,8 +82,8 @@ of this machine and not a project requirement.
 
 ## Rejected alternatives
 
-- **FastAPI.** Convenient, DevCake uses it, but it adds nothing the plan
-  needs and one more dependency on the request path.
+- **FastAPI.** Convenient, but it adds nothing the plan needs and one more
+  dependency on the request path.
 - **Typer or Click for the CLI.** Autocompletion and colours were not asked
   for; `argparse` has no dependencies.
 - **JSON or TOML recipes.** JSON has no comments and tinkerers edit recipes

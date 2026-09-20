@@ -11,10 +11,9 @@ That document ranks above every ADR and above this file. Read it before
 changing anything. Decisions that constrain future work are ADRs under
 `docs/adr/`, indexed in [`docs/adr/README.md`](docs/adr/README.md).
 
-Four principles bind every change. They are adopted from
-[DevCake](https://github.com/flieber-inc/devcake) (its `AGENTS.md` and
-[ADR-0034](https://github.com/flieber-inc/devcake/blob/main/docs/adr/0034-chokepoints-one-authoritative-path.md)),
-restated here for a project that starts empty.
+Four principles bind every change, restated here for a project that started
+empty: Always Works, test-driven development, SOLID, and one authoritative
+path per process.
 
 ## A. Always Works™ — proof before done
 
@@ -89,9 +88,9 @@ Anti-patterns to reject on sight:
 
 ## D. Honor all chokepoints — one authoritative path per singular process
 
-Adopted from DevCake ADR-0034, whose finding was that guarantees held by
-discipline (comments, naming conventions, hand-mirrored copies) drift, and
-that the second copy of a process is the one written without the guards.
+Guarantees held by discipline (comments, naming conventions, hand-mirrored
+copies) drift, and the second copy of a process is the one written without
+the guards.
 
 **A singular process has exactly one implementation.** Anything that looks
 like a second implementation must be one of:
