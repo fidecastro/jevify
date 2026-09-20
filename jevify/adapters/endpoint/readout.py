@@ -192,7 +192,37 @@ class EqualBiasRung:
         return readout
 
 
+class TopKFloorRung:
+    """Rung 5: top-k, but a label that fell out of the list gets the observed floor minus a
+    margin, and the answer is marked degraded with the missing labels named."""
+
+    rung = Rung.TOP_K_FLOOR
+    MARGIN = 1.0
+
+    @staticmethod
+    def available(capabilities: Capabilities | None) -> bool:
+        return True
+
+    @staticmethod
+    def shape(body: dict[str, Any], part: RenderedPart, top_k: int, dialect: Dialect) -> None:
+        TopKRung.shape(body, part, top_k, dialect)
+
+    @staticmethod
+    def read(parsed: Parsed, part: RenderedPart) -> Readout:
+        readout = read_answer_set(parsed, part, full_softmax=True)
+        if not readout.missing:
+            return readout
+        if not parsed.entries:
+            raise BackendError("no logprobs returned; nothing to floor against")
+        floor = min(e.logprob for e in parsed.entries) - TopKFloorRung.MARGIN
+        logprobs = dict(readout.logprobs)
+        for label in readout.missing:
+            logprobs[label] = floor
+        return Readout(logprobs, None, readout.missing, degraded=True)
+
+
 RUNGS: dict[Rung, Any] = {
+    Rung.TOP_K_FLOOR: TopKFloorRung,
     Rung.TOP_K: TopKRung,
     Rung.NAMED_TOKEN_LOGPROBS: NamedTokenLogprobsRung,
     Rung.GRAMMAR: GrammarRung,

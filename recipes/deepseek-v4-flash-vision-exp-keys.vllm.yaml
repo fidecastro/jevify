@@ -171,7 +171,7 @@ answers:
     - text: ' Z'
       id: 1653
 readout:
-  rung: top_k
+  rung: auto
   top_k: 20
   permutation: none
   permutation_calls: 1
