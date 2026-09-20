@@ -104,6 +104,7 @@ probe:
   backend_version: b10809-5266f24da7
   max_context: 16384
   modalities:
+  - image
   - text
   rungs:
   - grammar
@@ -139,15 +140,15 @@ probe:
   multi_token_answers: []
   cache:
     block_tokens: 1
-    first_ms: 34.589903021696955
-    second_ms: 13.634741975693032
+    first_ms: 34.03857801458798
+    second_ms: 13.35260400082916
     cached_tokens: 948
   fanout:
     concurrency: 1
-    concurrent_ms: 25.85078199626878
-    sequential_ms: 27.31739397859201
+    concurrent_ms: 25.07648098981008
+    sequential_ms: 26.634612993802875
   slots: 2
-  probed_at: '2026-09-20T01:18:17+00:00'
+  probed_at: '2026-09-20T01:48:22+00:00'
   notes: []
 provenance:
   author: Felipe Infante de Castro

@@ -110,6 +110,9 @@ def create_app(
             return _validation_error(exc)
         try:
             state, questions = jev_request_to_domain(wire)
+        except ValueError as exc:
+            return _error(422, str(exc))
+        try:
             state_ref = (wire.x_jevify or {}).get("state_ref")
             if state_ref:
                 handle = states.get(str(state_ref))
@@ -150,6 +153,8 @@ def create_app(
             handle = await engine.warm(state)
         except ValidationError as exc:
             return _validation_error(exc)
+        except ValueError as exc:
+            return _error(422, str(exc))
         except ContextLimitError as exc:
             return _error(413, str(exc))
         except (BackendError, RecipeError) as exc:

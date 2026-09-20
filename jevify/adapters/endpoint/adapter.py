@@ -65,6 +65,13 @@ class EndpointBackend:
     async def warm(self, state: State) -> StateHandle:
         """Send the state-only prefix once (one token, nothing read) so the server's cache
         holds it; on llama.cpp once per slot the fan-out will use."""
+        wanted = state.modalities - {"text"}
+        if wanted and self.capabilities and not wanted <= self.capabilities.modalities:
+            missing = sorted(wanted - self.capabilities.modalities)
+            raise BackendError(
+                f"this backend was probed without {missing} support; the state carries "
+                f"{missing} parts and jevify never drops them silently (INV-9)"
+            )
         prefix = render_prefix(self.recipe, state)
         identity = json.dumps(
             [prefix.mode, prefix.system, prefix.text, prefix.kwargs, len(prefix.images)],

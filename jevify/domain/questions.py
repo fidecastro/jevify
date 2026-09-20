@@ -34,13 +34,30 @@ class State:
 
     @classmethod
     def from_jev(cls, value: str | Mapping[str, object] | Sequence[object]) -> State:
-        """Build from Jev's `state` field: a string, or a JSON object or array.
+        """Build from Jev's `state` field: a string, a JSON object or array, or a list of
+        content parts in the chat-endpoint shape (`text` and `image_url` parts).
 
-        Structured values render deterministically as indented JSON with key
-        order preserved, so the same state always produces the same prefix.
+        Structured values render deterministically as indented JSON with key order
+        preserved, so the same state always produces the same prefix. Images must be
+        data URIs: jevify never fetches a URL on a caller's behalf (ADR-0003 D5).
         """
         if isinstance(value, str):
             return cls((TextPart(value),))
+        if isinstance(value, Sequence) and value and all(_is_content_part(v) for v in value):
+            parts: list[Part] = []
+            for item in value:
+                assert isinstance(item, Mapping)
+                if item["type"] == "text":
+                    parts.append(TextPart(str(item.get("text", ""))))
+                else:
+                    image = item.get("image_url")
+                    url = image.get("url") if isinstance(image, Mapping) else image
+                    if not isinstance(url, str) or not url.startswith("data:"):
+                        raise ValueError(
+                            "image parts must be data URIs; jevify never fetches a remote URL"
+                        )
+                    parts.append(ImagePart(url))
+            return cls(tuple(parts))
         rendered = json.dumps(value, ensure_ascii=False, indent=2)
         return cls((TextPart(rendered),))
 
@@ -52,6 +69,10 @@ class State:
     def modalities(self) -> frozenset[str]:
         kinds = {"text" if isinstance(p, TextPart) else "image" for p in self.parts}
         return frozenset(kinds)
+
+
+def _is_content_part(value: object) -> bool:
+    return isinstance(value, Mapping) and value.get("type") in ("text", "image_url")
 
 
 @dataclass(frozen=True)

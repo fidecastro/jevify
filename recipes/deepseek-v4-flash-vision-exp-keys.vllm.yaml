@@ -183,6 +183,7 @@ probe:
   backend_version: 0.25.2.dev0+g752a3a504.d20260714
   max_context: 1048576
   modalities:
+  - image
   - text
   rungs:
   - top_k
@@ -258,15 +259,15 @@ probe:
   multi_token_answers: []
   cache:
     block_tokens: 256
-    first_ms: 277.46440601185896
-    second_ms: 275.04102399689145
+    first_ms: 278.1646329967771
+    second_ms: 276.86469798209146
     cached_tokens: 768
   fanout:
     concurrency: 4
-    concurrent_ms: 630.1664589846041
-    sequential_ms: 1111.3489540002774
+    concurrent_ms: 628.7574839952867
+    sequential_ms: 1119.1557819838636
   slots: null
-  probed_at: '2026-09-20T01:18:14+00:00'
+  probed_at: '2026-09-20T01:48:17+00:00'
   notes:
   - 'logit_bias rejected: POST http://192.168.2.20:8888/v1/chat/completions returned 400: The min_p and
     logit_bias sampling parameters are not yet supported with speculative decoding.'

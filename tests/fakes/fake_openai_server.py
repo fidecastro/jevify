@@ -285,6 +285,16 @@ class FakeOpenAIServer:
         body = await request.json()
         if (gated := self._gate(body, "/v1/chat/completions")) is not None:
             return gated
+        has_image = any(
+            isinstance(m.get("content"), list)
+            and any(p.get("type") == "image_url" for p in m["content"])
+            for m in body["messages"]
+        )
+        if has_image and not self.behaviour.multimodal:
+            self.in_flight -= 1
+            return JSONResponse(
+                {"error": {"message": "this model does not accept image input"}}, status_code=400
+            )
         prompt = self._rendered_chat(body)
         if (bad := self._too_long(prompt)) is not None:
             return bad

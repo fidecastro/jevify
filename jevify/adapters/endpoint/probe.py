@@ -42,6 +42,29 @@ _PROBE_CASE = Path(__file__).resolve().parents[2] / "recipes" / "probe_case.yaml
 _BLOCK_CANDIDATES = (1, 16, 32, 64, 128, 256, 512, 1024, 2048)
 
 
+def _one_pixel_png() -> str:
+    """A 1x1 white PNG as a data URI, built here so no binary blob lives in the tree."""
+    import base64
+    import struct
+    import zlib
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return (
+            struct.pack(">I", len(data))
+            + tag
+            + data
+            + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+        )
+
+    png = (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(b"\x00\xff\xff\xff", 9))
+        + chunk(b"IEND", b"")
+    )
+    return "data:image/png;base64," + base64.b64encode(png).decode("ascii")
+
+
 def load_probe_case() -> dict[str, Any]:
     return yaml.safe_load(_PROBE_CASE.read_text(encoding="utf-8"))
 
@@ -98,6 +121,9 @@ class Prober:
         cache = await self._cache(state, dialect)
         slots = await self._slots(dialect)
         fanout = await self._fanout(prefix, part, dialect, slots)
+        modalities = {"text"}
+        if await self._accepts_image(dialect):
+            modalities.add("image")
 
         return Capabilities(
             kind="endpoint",
@@ -105,7 +131,7 @@ class Prober:
             dialect=dialect,
             backend_version=version,
             max_context=max_context,
-            modalities=frozenset({"text"}),
+            modalities=frozenset(modalities),
             rungs=frozenset(rungs),
             top_k_cap=top_k_cap if top_k_cap < entries_requested else None,
             logprobs_post_bias=post_bias,
@@ -359,6 +385,33 @@ class Prober:
         keep = int(len(text) * budget / count)
         self.notes.append(f"probe state cut to about {budget} tokens to fit the context")
         return text[:keep]
+
+    # ------------------------------------------------------------------ modalities
+    async def _accepts_image(self, dialect: Dialect) -> bool:
+        """Send a one-pixel PNG the way this recipe would send any image; accepted means
+        the modality is proven, anything else means it is not."""
+        from jevify.domain.questions import ImagePart, State, TextPart
+
+        state = State((TextPart("probe image"), ImagePart(_one_pixel_png())))
+        try:
+            prefix = render_prefix(self.recipe, state)
+            part = render_question(
+                self.recipe, NoulQuestion(id="image", instructions="The image is blank.")
+            ).parts[0]
+            path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
+        except ValueError as exc:
+            self.notes.append(f"images not sendable with this recipe: {exc}")
+            return False
+        body["logprobs"] = True if "messages" in body else 1
+        if "messages" in body:
+            body["top_logprobs"] = 1
+        post = self.client.post_root if path == "completion" else self.client.post_v1
+        try:
+            parsed = parse_response(path, await post(path, body), dialect)
+        except BackendError as exc:
+            self.notes.append(f"image part rejected: {exc}")
+            return False
+        return bool(parsed.entries)
 
     # ------------------------------------------------------------------ fan-out
     async def _slots(self, dialect: Dialect) -> int | None:
