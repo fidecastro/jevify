@@ -234,8 +234,17 @@ def render_markdown(summary: dict[str, Any]) -> str:
         f"| suite_sha256 | `{summary['suite_sha256']}` |",
         f"| expected answers by | {summary.get('expected_answers_by', 'unknown')} |",
         f"| model | `{summary['model']}` |",
-        f"| backend | {summary['backend'].get('dialect')} "
-        f"{summary['backend'].get('version') or ''} |",
+        "| backend | "
+        + " ".join(
+            str(part)
+            for part in (
+                summary["backend"].get("kind"),
+                summary["backend"].get("dialect"),
+                summary["backend"].get("version"),
+            )
+            if part
+        )
+        + " |",
         f"| jevify | {summary['jevify_version']} on {summary['python']} |",
         f"| run at | {summary['run_at']} |",
         f"| raw file | `runs/{summary['raw_file']}` (sha256 `{summary['raw_sha256'][:16]}…`) |",
