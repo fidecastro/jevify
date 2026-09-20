@@ -6,8 +6,30 @@ well it does. jevify is a harness: it owns no weights and trains nothing. You
 bring the model, a recipe says how it is asked, and a scorecard says how it
 did.
 
-**Status:** the design is adopted and the implementation has not started.
-What exists today is the governing documentation below.
+**Status:** the design is adopted and the implementation is in its first
+slices. The governing documentation below is complete; the commands listed
+under "Install" exist only as far as the changelog of merged slices says.
+
+## Install
+
+jevify is a Python package with a command-line tool. It needs Python 3.12 or
+newer and nothing else on your machine; the model runs elsewhere, behind an
+OpenAI-compatible endpoint you point it at.
+
+```sh
+uv tool install jevify        # or: pipx install jevify
+jevify --version
+```
+
+To work on jevify itself:
+
+```sh
+uv sync --all-extras
+uv run pytest
+```
+
+Ask your agent: "Install jevify as a tool, confirm `jevify --version`, and
+tell me which commands exist in this checkout."
 
 ## Start with your agent
 
