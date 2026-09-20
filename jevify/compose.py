@@ -73,4 +73,10 @@ def build_backend(recipe: Recipe, *, http: Any | None = None) -> Backend:
             return EmbeddingBackend(EndpointEmbedder(client, recipe), recipe)
         assert recipe.local is not None
         return EmbeddingBackend(LocalEmbedder(recipe.local), recipe)
+    if recipe.model.kind == "encoder":
+        from jevify.adapters.encoder.adapter import EncoderBackend
+        from jevify.adapters.encoder.local import NliScorer
+
+        assert recipe.local is not None
+        return EncoderBackend(NliScorer(recipe.local), recipe)
     raise BackendError(f"model kind {recipe.model.kind!r} has no adapter yet")

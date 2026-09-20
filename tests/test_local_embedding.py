@@ -32,3 +32,24 @@ def test_local_embedder_ranks_the_obvious_option(fixtures):
     assert answer.semantics == "similarity"
     assert max(answer.logprobs, key=answer.logprobs.get) == "cooking"
     assert -1.0 <= answer.raw["cosine"]["cooking"] <= 1.0
+
+
+def test_local_nli_head_answers_all_three_types(fixtures):
+    pytest.importorskip("torch")
+    pytest.importorskip("transformers")
+    from jevify.domain.questions import NoulQuestion, ScoreQuestion
+
+    backend = build_backend(load_recipe(fixtures / "recipes" / "local-encoder.yaml"))
+    caps = asyncio.run(backend.probe())
+    assert caps.kind == "encoder" and any("entailment" in n for n in caps.notes)
+    handle = asyncio.run(backend.warm(State.from_jev("How long should I boil an egg?")))
+    choice = ChoiceQuestion(
+        id="q", instructions="Topic?", options=(Option("cooking"), Option("astronomy"))
+    )
+    noul = NoulQuestion(id="n", instructions="This example is about food.")
+    score = ScoreQuestion(id="s", instructions="Topic?", levels=("cooking", "astronomy"))
+    answers = asyncio.run(backend.evaluate(handle, [choice, noul, score]))
+    assert [a.semantics for a in answers] == ["readout"] * 3
+    assert max(answers[0].logprobs, key=answers[0].logprobs.get) == "cooking"
+    assert answers[1].logprobs["true"] > answers[1].logprobs["false"]
+    assert answers[2].logprobs["0"] > answers[2].logprobs["1"]

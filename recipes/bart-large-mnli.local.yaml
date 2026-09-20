@@ -1,0 +1,55 @@
+schema_version: 1
+model:
+  name: bart-large-mnli
+  kind: encoder
+  revision: facebook/bart-large-mnli
+encoder:
+  layout: nli
+  premise: '{state}'
+  hypothesis: '{text}'
+  noul_hypothesis: '{instructions}'
+  description_sep: ': '
+  entailment_label: entailment
+  contradiction_label: contradiction
+local:
+  path: facebook/bart-large-mnli
+  device: auto
+  max_tokens: 1024
+  pooling: last
+readout:
+  rung: auto
+  top_k: 20
+  permutation: none
+  permutation_calls: 1
+probe:
+  kind: encoder
+  model: bart-large-mnli
+  dialect: null
+  backend_version: null
+  max_context: null
+  modalities:
+  - text
+  rungs: []
+  top_k_cap: null
+  logprobs_post_bias: null
+  prefill_honored: null
+  template_kwargs_honored: null
+  token_ids_verified: false
+  answer_tokens: {}
+  multi_token_answers: []
+  cache: null
+  fanout: null
+  slots: null
+  probed_at: '2026-09-20T02:06:30+00:00'
+  notes:
+  - layout nli; head labels contradiction, entailment, neutral
+  - transport local
+  - text only; one forward pass per question
+provenance:
+  author: Felipe Infante de Castro
+  created: '2026-09-20'
+  status: probed
+  notes:
+  - The classic zero-shot NLI classifier, as the encoder-kind control on policy-29.
+  - No Laya marker-slot checkpoint is at hand; the nli layout is the one built so far.
+  scorecards: []

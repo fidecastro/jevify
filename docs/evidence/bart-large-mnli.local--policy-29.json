@@ -1,0 +1,222 @@
+{
+  "recipe": "recipes/bart-large-mnli.local.yaml",
+  "recipe_stem": "bart-large-mnli.local",
+  "recipe_hash": "cb60929973ae1fb7e08ebe0c8cafca95922b414fa26c3aaa1e5b3646482f666a",
+  "model": "bart-large-mnli",
+  "backend": {
+    "kind": "encoder",
+    "dialect": null,
+    "version": null,
+    "base_url": null,
+    "probed_at": "2026-09-20T02:06:30+00:00"
+  },
+  "suite": "policy-29",
+  "suite_file": "suites/policy-29.jsonl",
+  "suite_sha256": "c59cb29f97e78e67472206dd544c833c65bf06632d7de093760daff627b78015",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T02:06:31+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/bart-large-mnli.local.yaml suites/policy-29.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 29,
+      "agreement_with_label": 0.3793103448275862,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 29,
+      "same_choice": 1.0,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "bart-large-mnli.local--policy-29--20260920T020634Z.jsonl",
+  "raw_sha256": "0730e6095789b5a720b6a126500a801f44e006160164c9495edede93544e1941",
+  "metrics": {
+    "cases": 29,
+    "scored": 29,
+    "errors": 0,
+    "accuracy": 0.5172413793103449,
+    "log_loss": 1.7335068299626641,
+    "brier": 0.8474397096668685,
+    "ece": 0.4637277377236201,
+    "groups": {
+      "diagnostic": {
+        "cases": 23,
+        "accuracy": 0.43478260869565216
+      },
+      "original": {
+        "cases": 6,
+        "accuracy": 0.8333333333333334
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 6.777263013646007,
+      "p95": 9.90396600682288,
+      "mean": 90.4675118287961
+    }
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 2,
+      "confidence": 0.6509869523489511,
+      "accuracy": 1.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 5,
+      "confidence": 0.8822837937702908,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 22,
+      "confidence": 0.9699390604468833,
+      "accuracy": 0.5909090909090909
+    }
+  ],
+  "wrong": [
+    {
+      "case_id": "original_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.7864061162129026
+    },
+    {
+      "case_id": "diagnostic_1_pointwise_instruction_1",
+      "label": "Withdraw the cancellation request and keep the subscription active.",
+      "selected": "Proceed with cancelling the subscription.",
+      "confidence": 0.6148137659442505
+    },
+    {
+      "case_id": "diagnostic_2_question_format_1",
+      "label": "Withdraw the cancellation request and keep the subscription active.",
+      "selected": "Proceed with cancelling the subscription.",
+      "confidence": 0.8438649068180608
+    },
+    {
+      "case_id": "diagnostic_3_policy_in_query_1",
+      "label": "Withdraw the cancellation request and keep the subscription active.",
+      "selected": "Proceed with cancelling the subscription.",
+      "confidence": 0.6148137659442505
+    },
+    {
+      "case_id": "diagnostic_6_pointwise_instruction_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.7482453647226733
+    },
+    {
+      "case_id": "diagnostic_8_policy_in_query_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.7482453647226733
+    },
+    {
+      "case_id": "diagnostic_9_pointwise_without_moving_fields_5",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.7864061162129026
+    },
+    {
+      "case_id": "diagnostic_14_amount_50_original",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.7968099155188774
+    },
+    {
+      "case_id": "diagnostic_15_amount_50_question",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.6779966424849584
+    },
+    {
+      "case_id": "diagnostic_16_amount_74_original",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.762834210116759
+    },
+    {
+      "case_id": "diagnostic_17_amount_74_question",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.6738178442568435
+    },
+    {
+      "case_id": "diagnostic_19_amount_75_question",
+      "label": "Approve automatically.",
+      "selected": "Request manager approval.",
+      "confidence": 0.6878062022041218
+    },
+    {
+      "case_id": "diagnostic_25_instruction_flip",
+      "label": "Cancel the subscription.",
+      "selected": "Keep the subscription active.",
+      "confidence": 0.9999639169534604
+    },
+    {
+      "case_id": "diagnostic_26_retrieval_control",
+      "label": "The capital of China is Beijing.",
+      "selected": "Gravity attracts bodies towards each other.",
+      "confidence": 0.9545965374143215
+    }
+  ],
+  "failed": []
+}

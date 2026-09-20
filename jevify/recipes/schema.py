@@ -145,6 +145,22 @@ class EmbeddingSpec(_Strict):
     scale: float = Field(default=10.0, gt=0)  # cosine times scale feeds the ranking softmax
 
 
+class EncoderSpec(_Strict):
+    """How an encoder-kind recipe lays a question out for a sequence-classification head.
+
+    The `nli` layout pairs the state (premise) with one hypothesis per option, level or
+    statement and reads the head's entailment and contradiction logits at each pair.
+    """
+
+    layout: Literal["nli"] = "nli"
+    premise: str  # {state}
+    hypothesis: str  # {instructions}, {key}, {description}, {text} = description or key
+    noul_hypothesis: str  # {instructions} = the statement
+    description_sep: str = ": "
+    entailment_label: str = "entailment"
+    contradiction_label: str = "contradiction"
+
+
 class Provenance(_Strict):
     author: str
     created: str
@@ -162,6 +178,7 @@ class Recipe(_Strict):
     answers: AnswersSpec | None = None
     rerank: RerankSpec | None = None
     embedding: EmbeddingSpec | None = None
+    encoder: EncoderSpec | None = None
     local: LocalModelSpec | None = None
     readout: ReadoutSpec = Field(default_factory=ReadoutSpec)
     budgets: Budgets | None = None
@@ -178,6 +195,8 @@ class Recipe(_Strict):
                 raise ValueError("an embedding recipe needs an embedding section")
             if (self.endpoint is None) == (self.local is None):
                 raise ValueError("an embedding recipe needs exactly one of endpoint or local")
+        if self.model.kind == "encoder" and (self.encoder is None or self.local is None):
+            raise ValueError("an encoder recipe needs encoder and local sections")
         if self.model.kind == "endpoint" and (self.template is None or self.answers is None):
             raise ValueError("an endpoint recipe needs template and answers sections")
         if self.model.kind == "rerank" and self.rerank is None:

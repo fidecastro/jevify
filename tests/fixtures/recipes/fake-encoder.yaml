@@ -1,0 +1,19 @@
+# Test recipe: an NLI sequence-classification head, scored by a fake in the test.
+schema_version: 1
+model:
+  name: fake-nli
+  kind: encoder
+local:
+  path: fake
+  max_tokens: 512
+encoder:
+  layout: nli
+  premise: "{state}"
+  hypothesis: "This text is about {text}."
+  noul_hypothesis: "{instructions}"
+  entailment_label: entailment
+  contradiction_label: contradiction
+provenance:
+  author: tests
+  created: "2026-09-20"
+  status: draft

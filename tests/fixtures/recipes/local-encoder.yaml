@@ -1,0 +1,20 @@
+# Test recipe (marker `encoder`): a small public NLI cross-encoder run in-process.
+schema_version: 1
+model:
+  name: cross-encoder/nli-MiniLM2-L6-H768
+  kind: encoder
+local:
+  path: cross-encoder/nli-MiniLM2-L6-H768
+  device: auto
+  max_tokens: 512
+encoder:
+  layout: nli
+  premise: "{state}"
+  hypothesis: "This example is about {text}."
+  noul_hypothesis: "{instructions}"
+  entailment_label: entailment
+  contradiction_label: contradiction
+provenance:
+  author: tests
+  created: "2026-09-20"
+  status: draft
