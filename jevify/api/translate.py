@@ -93,6 +93,7 @@ def answer_to_jev(answer: Answer, *, recipe_hash: str) -> dict[str, Any]:
         "prompt_tokens": answer.readout.prompt_tokens,
         "cached_tokens": answer.readout.cached_tokens,
         "recipe_hash": recipe_hash,
+        "temperature": answer.readout.temperature,
     }
     if answer.readout.missing:
         extension["missing"] = list(answer.readout.missing)

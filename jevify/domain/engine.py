@@ -37,6 +37,7 @@ class ReadoutRecord:
     prompt_tokens: int | None
     cached_tokens: int | None
     missing: tuple[str, ...] = ()
+    temperature: float | None = None
 
 
 @dataclass(frozen=True)
@@ -111,6 +112,9 @@ class Engine:
 
     def _answer(self, question: Question, raw: RawAnswer) -> Answer:
         ordered = {label: raw.logprobs[label] for label in question.labels if label in raw.logprobs}
+        temperature = self._temperature(question, raw)
+        if temperature is not None:
+            ordered = {label: value / temperature for label, value in ordered.items()}
         distribution = Distribution.from_logprobs(ordered)
         legend = (
             {str(i): level for i, level in enumerate(question.levels)}
@@ -122,7 +126,7 @@ class Engine:
             kind=question.kind,
             distribution=distribution,
             confidence=distribution.confidence(question.kind),
-            semantics=raw.semantics,
+            semantics="calibrated" if temperature is not None else raw.semantics,
             readout=ReadoutRecord(
                 rung=str(raw.rung),
                 degraded=raw.degraded,
@@ -133,6 +137,16 @@ class Engine:
                 prompt_tokens=raw.prompt_tokens,
                 cached_tokens=raw.cached_tokens,
                 missing=raw.missing,
+                temperature=temperature,
             ),
             legend=legend,
         )
+
+    def _temperature(self, question: Question, raw: RawAnswer) -> float | None:
+        """A fitted temperature applies only to readouts, only for a bucket the table covers."""
+        table = self.recipe.calibration
+        if table is None or raw.semantics != "readout":
+            return None
+        from jevify.evaluation.calibrate import bucket_key
+
+        return table.temperatures.get(bucket_key(question.kind, len(question.labels)))

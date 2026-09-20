@@ -113,6 +113,25 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="also run the shuffled-context and option-permutation controls",
     )
+    cal = commands.add_parser(
+        "calibrate", help="fit temperatures on a raw run and write them into the recipe"
+    )
+    cal.add_argument("recipe", type=Path)
+    cal.add_argument(
+        "raw", type=Path, help="a raw per-decision file written by `jevify eval` (runs/...)"
+    )
+    cal.add_argument("--evidence-dir", type=Path, default=Path("docs/evidence"))
+    cal.add_argument(
+        "--min-fit",
+        type=int,
+        default=50,
+        help="fewest fit decisions a bucket needs before its temperature may be applied",
+    )
+    cal.add_argument(
+        "--force",
+        action="store_true",
+        help="write the table even when a bucket is too small or error-free (recorded as forced)",
+    )
     probe = commands.add_parser(
         "probe", help="measure a backend and write its capabilities into the recipe"
     )
@@ -169,6 +188,65 @@ def run_eval(args: argparse.Namespace) -> int:
         controls=args.controls,
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
+
+
+def run_calibrate(args: argparse.Namespace) -> int:
+    from jevify.evaluation.calibrate import calibrate_run, render_markdown
+    from jevify.recipes import dump_recipe
+
+    recipe = load_recipe(args.recipe)
+    before = recipe_hash(recipe)
+    evidence = calibrate_run(args.raw, recipe_hash_before=before, min_fit=args.min_fit)
+    evidence["forced"] = bool(args.force and not evidence["applicable"])
+    args.evidence_dir.mkdir(parents=True, exist_ok=True)
+    stem = args.recipe.stem
+    evidence_json = args.evidence_dir / f"{stem}--calibration.json"
+    evidence_md = args.evidence_dir / f"{stem}--calibration.md"
+    evidence_json.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
+    evidence_md.write_text(render_markdown(evidence, stem), encoding="utf-8")
+    if not evidence["applicable"] and not args.force:
+        print(
+            json.dumps(
+                {
+                    "applied": False,
+                    "problems": evidence["problems"],
+                    "temperatures_not_applied": evidence["temperatures"],
+                    "evidence_json": str(evidence_json),
+                    "hint": (
+                        "collect more labeled decisions, or pass --force to record a forced table"
+                    ),
+                },
+                indent=2,
+            )
+        )
+        return 1
+    document = recipe.model_dump(mode="json")
+    document["calibration"] = {
+        "temperatures": evidence["temperatures"],
+        "evidence": str(evidence_json),
+    }
+    from jevify.recipes.schema import Recipe
+
+    updated = Recipe.model_validate(document)
+    dump_recipe(updated, args.recipe)
+    print(
+        json.dumps(
+            {
+                "recipe": str(args.recipe),
+                "recipe_hash_before": before,
+                "recipe_hash_after": recipe_hash(updated),
+                "applied": True,
+                "forced": evidence["forced"],
+                "temperatures": evidence["temperatures"],
+                "held_out_before": evidence["held_out_before"],
+                "held_out_after": evidence["held_out_after"],
+                "evidence_json": str(evidence_json),
+                "evidence_md": str(evidence_md),
+            },
+            indent=2,
+        )
+    )
     return 0
 
 
@@ -288,7 +366,13 @@ def run_ask(args: argparse.Namespace) -> int:
     return 0
 
 
-COMMANDS = {"ask": run_ask, "probe": run_probe, "serve": run_serve, "eval": run_eval}
+COMMANDS = {
+    "ask": run_ask,
+    "probe": run_probe,
+    "serve": run_serve,
+    "eval": run_eval,
+    "calibrate": run_calibrate,
+}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
