@@ -26,7 +26,7 @@ jobs:
       - name: Sync (core + dev group)
         run: uv sync --locked --group dev
       - name: Lint
-        run: uv run ruff check .
+        run: uv run ruff check . && uv run ruff format --check .
       - name: Test (unit, guards, sdk acceptance; live tests skip without a backend)
         run: uv run pytest -m "not live and not encoder"
       - name: Install as a tool and run it from another directory

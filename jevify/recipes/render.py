@@ -97,10 +97,7 @@ def render_question(
         return _finish(recipe, body, "noul", ("false", "true"), tokens, ())
 
     if isinstance(question, ChoiceQuestion):
-        items = [
-            (option.key, option.description)
-            for option in question.options
-        ]
+        items = [(option.key, option.description) for option in question.options]
         line_template, label_of = templates.option_line, "key"
     elif isinstance(question, ScoreQuestion):
         items = [(level, None) for level in question.levels]
