@@ -10,6 +10,7 @@ import argparse
 import asyncio
 import base64
 import json
+import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -83,6 +84,15 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("named_token_logprobs", "grammar", "top_k", "equal_bias", "top_k_floor"),
         help="override the recipe's readout rung for this call",
     )
+    serve = commands.add_parser("serve", help="serve Jev's API for one recipe")
+    serve.add_argument("recipe", type=Path)
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8600)
+    serve.add_argument(
+        "--api-key-env",
+        default="JEVIFY_API_KEY",
+        help="env var holding the bearer key clients must send (unset = no check)",
+    )
     probe = commands.add_parser(
         "probe", help="measure a backend and write its capabilities into the recipe"
     )
@@ -91,6 +101,28 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="print the capabilities, do not write"
     )
     return parser
+
+
+def run_serve(args: argparse.Namespace) -> int:
+    import uvicorn
+
+    from jevify.compose import build_app
+
+    recipe = load_recipe(args.recipe)
+    app = build_app(recipe, api_key_env=args.api_key_env)
+    print(
+        json.dumps(
+            {
+                "serving": recipe.model.name,
+                "recipe_hash": recipe_hash(recipe),
+                "url": f"http://{args.host}:{args.port}/v1/systemone",
+                "api_key_checked": bool(os.environ.get(args.api_key_env)),
+            }
+        ),
+        flush=True,
+    )
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
+    return 0
 
 
 def run_probe(args: argparse.Namespace) -> int:
@@ -209,7 +241,7 @@ def run_ask(args: argparse.Namespace) -> int:
     return 0
 
 
-COMMANDS = {"ask": run_ask, "probe": run_probe}
+COMMANDS = {"ask": run_ask, "probe": run_probe, "serve": run_serve}
 
 
 def main(argv: Sequence[str] | None = None) -> int:

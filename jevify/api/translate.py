@@ -7,10 +7,77 @@ no ports and no adapters (a guard enforces it).
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from typing import Any
 
+from jevify.api.schema import (
+    ChoiceQuestion as WireChoice,
+)
+from jevify.api.schema import (
+    NoulQuestion as WireNoul,
+)
+from jevify.api.schema import (
+    ScoreQuestion as WireScore,
+)
+from jevify.api.schema import (
+    SystemOneRequest,
+)
 from jevify.domain.engine import Answer, Evaluation
+from jevify.domain.questions import (
+    ChoiceQuestion,
+    NoulQuestion,
+    Option,
+    Question,
+    ScoreQuestion,
+    State,
+)
+
+
+def _text(value: Any) -> str | None:
+    """Jev allows instructions and criteria to be strings or JSON; render JSON deterministically."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False)
+
+
+def jev_request_to_domain(request: SystemOneRequest) -> tuple[State, list[Question]]:
+    state = State.from_jev(request.state)
+    questions: list[Question] = []
+    for ident, wrapped in request.questions.items():
+        wire = wrapped.root
+        if isinstance(wire, WireNoul):
+            criteria = wire.criteria
+            questions.append(
+                NoulQuestion(
+                    id=ident,
+                    instructions=_text(wire.instructions),
+                    true_criterion=_text(criteria.true) if criteria else None,
+                    false_criterion=_text(criteria.false) if criteria else None,
+                )
+            )
+        elif isinstance(wire, WireChoice):
+            questions.append(
+                ChoiceQuestion(
+                    id=ident,
+                    instructions=_text(wire.instructions),
+                    options=tuple(
+                        Option(key, _text(description))
+                        for key, description in wire.criteria.items()
+                    ),
+                )
+            )
+        elif isinstance(wire, WireScore):
+            questions.append(
+                ScoreQuestion(
+                    id=ident,
+                    instructions=_text(wire.instructions),
+                    levels=tuple(_text(level) or "" for level in wire.criteria),
+                )
+            )
+    return state, questions
 
 
 def answer_to_jev(answer: Answer, *, recipe_hash: str) -> dict[str, Any]:

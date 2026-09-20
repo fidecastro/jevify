@@ -20,6 +20,13 @@ def build_engine(recipe: Recipe, *, http: Any | None = None) -> Engine:
     return Engine(build_backend(recipe, http=http), recipe)
 
 
+def build_app(recipe: Recipe, *, http: Any | None = None, api_key_env: str | None = None):
+    from jevify.api.app import create_app
+
+    api_key = os.environ.get(api_key_env) if api_key_env else None
+    return create_app(build_engine(recipe, http=http), recipe, api_key=api_key)
+
+
 def build_backend(recipe: Recipe, *, http: Any | None = None) -> Backend:
     if recipe.model.kind == "endpoint":
         assert recipe.endpoint is not None  # validated by the schema

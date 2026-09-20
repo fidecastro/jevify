@@ -53,6 +53,9 @@ packages = ["jevify"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["-q", "--import-mode=importlib"]
+filterwarnings = [
+  "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]
 markers = [
   "live: needs a live backend named in JEVIFY_LIVE_RECIPES",
   "sdk: runs the unmodified typesafe-sdk against a jevify server",
