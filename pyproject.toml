@@ -74,3 +74,7 @@ select = ["E", "F", "I", "B", "BLE", "UP"]
 python_version = "3.12"
 packages = ["jevify"]
 strict = false
+
+[tool.ruff.lint.per-file-ignores]
+# suite authoring scripts carry the cases as prose literals; wrapping them would change nothing
+"tools/*" = ["E501"]
