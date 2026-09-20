@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jevify"
+version = "0.1.0"
+description = "Make a pretrained model you already have answer typed questions in one pass, and measure how well it does."
+readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+authors = [{ name = "Felipe Infante de Castro" }]
+keywords = ["decisions", "logprobs", "readout", "openai-compatible", "evaluation"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Operating System :: OS Independent",
+]
+# ADR-0006 D1: five light core packages and nothing else.
+dependencies = [
+  "httpx>=0.27",
+  "pydantic>=2.12",
+  "PyYAML>=6.0.2",
+  "starlette>=0.40",
+  "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+# ADR-0006 D2
+encoder = ["torch>=2.4", "transformers>=4.51", "safetensors>=0.4"]
+
+[project.scripts]
+jevify = "jevify.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/fidecastro/jevify"
+
+[dependency-groups]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "typesafe-sdk==0.7.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["jevify"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-q", "--import-mode=importlib"]
+markers = [
+  "live: needs a live backend named in JEVIFY_LIVE_RECIPES",
+  "sdk: runs the unmodified typesafe-sdk against a jevify server",
+  "encoder: needs the encoder extra",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "BLE", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+packages = ["jevify"]
+strict = false
