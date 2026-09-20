@@ -2,60 +2,214 @@ schema_version: 1
 model:
   name: ternary-bonsai-2-27b
   kind: endpoint
-  revision: Ternary-Bonsai-2-27B-PQ2_0.gguf + Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf (qwen35 architecture, 64 layers, trained context 262144)
+  revision: Ternary-Bonsai-2-27B-PQ2_0.gguf + Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf (qwen35 architecture,
+    64 layers, trained context 262144)
 endpoint:
   base_url: http://127.0.0.1:8082/v1
   dialect: llamacpp
-  timeout_s: 300
+  timeout_s: 300.0
 template:
-  mode: messages
-  system: You answer typed questions about the state with a single token.
-  state: "State:\n{state}"
-  state_end: "\n\n"
-  # The GGUF's chat template opens a reasoning block unless enable_thinking is false
-  # (it also accepts reasoning_effort); the probe verifies the rendered tail.
-  kwargs:
-    enable_thinking: false
+  mode: raw
+  state: 'State:
+
+    {state}'
+  state_end: '
+
+
+    '
+  raw: '<|im_start|>system
+
+    You answer typed questions about the state with a single token.<|im_end|>
+
+    <|im_start|>user
+
+    {state}{question}<|im_end|>
+
+    <|im_start|>assistant
+
+    <think>
+
+
+    </think>
+
+
+    '
+  kwargs: {}
+  image_marker: <__media__>
   questions:
-    choice: "Question: {instructions}\nOptions:\n{options}\nAnswer with the identifier of the best option."
-    option_line: "{identifier}. {key}{description}"
-    description_sep: ": "
-    score: "Question: {instructions}\nLevels:\n{levels}\nAnswer with the identifier of the level that applies."
-    level_line: "{identifier}. {text}"
-    noul: "Question: {instructions}\nAnswer with exactly one word, yes or no."
+    choice: 'Question: {instructions}
+
+      Options:
+
+      {options}
+
+      Answer with the identifier of the best option.'
+    option_line: '{identifier}. {key}{description}'
+    description_sep: ': '
+    score: 'Question: {instructions}
+
+      Levels:
+
+      {levels}
+
+      Answer with the identifier of the level that applies.'
+    level_line: '{identifier}. {text}'
+    noul: 'Question: {instructions}
+
+      Answer with exactly one word, yes or no.'
+    choice_strategy: identifiers
 answers:
-  # Qwen-family tokenizer (gpt2 byte-level BPE): ids to be verified by the probe.
   noul:
-    "true":
-      - { text: "yes" }
-      - { text: "Yes" }
-      - { text: " yes" }
-      - { text: " Yes" }
-    "false":
-      - { text: "no" }
-      - { text: "No" }
-      - { text: " no" }
-      - { text: " No" }
+    'true':
+    - text: 'yes'
+      id: 9405
+    - text: 'Yes'
+      id: 9175
+    - text: ' yes'
+      id: 9542
+    - text: ' Yes'
+      id: 7179
+    'false':
+    - text: 'no'
+      id: 2083
+    - text: 'No'
+      id: 2665
+    - text: ' no'
+      id: 874
+    - text: ' No'
+      id: 2233
   identifiers:
-    - [{ text: "A" }, { text: " A" }]
-    - [{ text: "B" }, { text: " B" }]
-    - [{ text: "C" }, { text: " C" }]
-    - [{ text: "D" }, { text: " D" }]
-    - [{ text: "E" }, { text: " E" }]
-    - [{ text: "F" }, { text: " F" }]
-    - [{ text: "G" }, { text: " G" }]
-    - [{ text: "H" }, { text: " H" }]
-    - [{ text: "I" }, { text: " I" }]
-    - [{ text: "J" }, { text: " J" }]
+  - - text: A
+      id: 32
+    - text: ' A'
+      id: 357
+  - - text: B
+      id: 33
+    - text: ' B'
+      id: 417
+  - - text: C
+      id: 34
+    - text: ' C'
+      id: 351
+  - - text: D
+      id: 35
+    - text: ' D'
+      id: 414
+  - - text: E
+      id: 36
+    - text: ' E'
+      id: 458
+  - - text: F
+      id: 37
+    - text: ' F'
+      id: 426
+  - - text: G
+      id: 38
+    - text: ' G'
+      id: 469
+  - - text: H
+      id: 39
+    - text: ' H'
+      id: 462
+  - - text: I
+      id: 40
+    - text: ' I'
+      id: 353
+  - - text: J
+      id: 41
+    - text: ' J'
+      id: 604
 readout:
   rung: auto
   top_k: 20
   permutation: none
+  permutation_calls: 1
+probe:
+  kind: endpoint
+  model: ternary-bonsai-2-27b
+  dialect: llamacpp
+  backend_version: b1-9a9394a
+  max_context: 16384
+  modalities:
+  - image
+  - text
+  rungs:
+  - top_k
+  - equal_bias
+  - top_k_floor
+  top_k_cap: null
+  logprobs_post_bias: true
+  prefill_honored: null
+  template_kwargs_honored: null
+  token_ids_verified: true
+  answer_tokens:
+    'yes': 9405
+    'Yes': 9175
+    ' yes': 9542
+    ' Yes': 7179
+    'no': 2083
+    'No': 2665
+    ' no': 874
+    ' No': 2233
+    A: 32
+    ' A': 357
+    B: 33
+    ' B': 417
+    C: 34
+    ' C': 351
+    D: 35
+    ' D': 414
+    E: 36
+    ' E': 458
+    F: 37
+    ' F': 426
+    G: 38
+    ' G': 469
+    H: 39
+    ' H': 462
+    I: 40
+    ' I': 353
+    J: 41
+    ' J': 604
+  multi_token_answers: []
+  cache:
+    block_tokens: 1
+    first_ms: 308.3769360091537
+    second_ms: 68.11625100090168
+    cached_tokens: 932
+    warm_prefix_tokens: 912
+    warm_reuse_tokens: 912
+  fanout:
+    concurrency: 1
+    concurrent_ms: 131.28354999935254
+    sequential_ms: 134.07676698989235
+  slots: 2
+  probed_at: '2026-09-20T02:39:15+00:00'
+  notes:
+  - grammar accepted but the reported probabilities are not constrained by it; the grammar rung is not
+    proven on this build
+  - token-granular cache; the last 4 prompt tokens are re-evaluated on every call
+  image_marker: <__media__>
 provenance:
   author: Felipe Infante de Castro
-  created: "2026-09-20"
-  status: draft
-  launch: "llama-server -m ~/Work/models/Ternary-Bonsai-2-27B-PQ2_0.gguf --mmproj ~/Work/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf -c 32768 -ngl 99 --parallel 2 --port 8082"
+  created: '2026-09-20'
+  status: probed
+  launch: LLAMA_MEDIA_MARKER='<__media__>' ~/Work/tries/llama.cpp-prism/build/bin/llama-server -m ~/Work/models/Ternary-Bonsai-2-27B-PQ2_0.gguf
+    --mmproj ~/Work/models/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf -c 32768 -ngl 99 --parallel 2 --port
+    8082 --cache-reuse 256 --jinja
   notes:
-    - "Unprobed: llama.cpp build 10809 (b5266f24d) refuses the GGUF, tensor output.weight has ggml type 142 (the ternary PQ2_0 format) and this build knows types 0 to 43. A build with PQ2_0 support is needed before the probe can run."
-    - "A general instruct vision model in chat mode: the third model class after the DeepSeek decoder on vLLM and the Qwen3-VL reranker in raw mode."
+  - 'Needs the PrismML fork of llama.cpp (github.com/PrismML-Eng/llama.cpp, branch prism, built here at
+    commit 9a9394a with CUDA): the PQ2_0 ternary pack is ggml type 142, which upstream llama.cpp refuses.
+    --jinja is required for chat_template_kwargs to reach the template.'
+  - 'A general instruct vision model in chat mode, ternary, 7.2 GB on disk, about 10 GB of VRAM with two
+    16k slots: the third model class after the DeepSeek decoder on vLLM and the Qwen3-VL reranker in raw
+    mode.'
+  - 'Raw mode on purpose: the chat template closes the user turn right after the state, so a messages-mode
+    warm ends at a prompt that is not a prefix of any question prompt. This model is a hybrid (recurrent
+    GDN layers), and llama.cpp can only resume such a model from a saved checkpoint, which sits at the
+    end of the warm prompt. In messages mode every question therefore recomputed the whole state (17 cached
+    tokens, the system header). In raw mode the warm prompt ends exactly at the state boundary and every
+    question reuses it.'
+  - The prompt reproduces the GGUF's chat template with thinking off (an empty think block), which the
+    probe checks against the server's own rendering.
+  scorecards: []

@@ -140,16 +140,19 @@ probe:
   multi_token_answers: []
   cache:
     block_tokens: 1
-    first_ms: 34.03857801458798
-    second_ms: 13.35260400082916
+    first_ms: 33.76105200732127
+    second_ms: 13.73509201221168
     cached_tokens: 948
+    warm_prefix_tokens: 940
+    warm_reuse_tokens: 940
   fanout:
     concurrency: 1
-    concurrent_ms: 25.07648098981008
-    sequential_ms: 26.634612993802875
+    concurrent_ms: 25.607539020711556
+    sequential_ms: 27.304048009682447
   slots: 2
-  probed_at: '2026-09-20T01:48:22+00:00'
+  probed_at: '2026-09-20T02:43:12+00:00'
   notes: []
+  image_marker: <__media__>
 provenance:
   author: Felipe Infante de Castro
   created: '2026-09-19'

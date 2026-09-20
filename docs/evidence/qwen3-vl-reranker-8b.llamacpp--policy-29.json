@@ -1,14 +1,14 @@
 {
   "recipe": "recipes/qwen3-vl-reranker-8b.llamacpp.yaml",
   "recipe_stem": "qwen3-vl-reranker-8b.llamacpp",
-  "recipe_hash": "e0300306edb39b454ec6241526a0e7cd2348d7a0fce109f96da7bcb2b24e8e50",
+  "recipe_hash": "675545aea2004b0482d54e163f2d8bcbc0b3c6547c6ea4b240f35ba85e5f3ce0",
   "model": "qwen3-vl-reranker-8b",
   "backend": {
     "kind": "endpoint",
     "dialect": "llamacpp",
     "version": "b10809-5266f24da7",
     "base_url": "http://127.0.0.1:8081/v1",
-    "probed_at": "2026-09-20T01:18:17+00:00"
+    "probed_at": "2026-09-20T02:43:12+00:00"
   },
   "suite": "policy-29",
   "suite_file": "suites/policy-29.jsonl",
@@ -16,7 +16,7 @@
   "expected_answers_by": "human (the author of the cases)",
   "jevify_version": "0.1.0",
   "python": "3.14.7",
-  "run_at": "2026-09-20T01:32:08+00:00",
+  "run_at": "2026-09-20T02:43:32+00:00",
   "concurrency": 1,
   "command": "jevify eval recipes/qwen3-vl-reranker-8b.llamacpp.yaml suites/policy-29.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
   "controls": {
@@ -33,16 +33,16 @@
       "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
     }
   },
-  "raw_file": "qwen3-vl-reranker-8b.llamacpp--policy-29--20260920T013215Z.jsonl",
-  "raw_sha256": "7b57a40da2caee93b8bb1df46a699edb9042961f267f33d66525939223125b5e",
+  "raw_file": "qwen3-vl-reranker-8b.llamacpp--policy-29--20260920T024339Z.jsonl",
+  "raw_sha256": "b3ad37a9c0546762cf5ee9fecaafa3560135e7c0a7259b96146aca30ec236bd5",
   "metrics": {
     "cases": 29,
     "scored": 29,
     "errors": 0,
     "accuracy": 0.896551724137931,
-    "log_loss": 0.3384894116856606,
-    "brier": 0.17664801237094196,
-    "ece": 0.17221176193815677,
+    "log_loss": 0.3378189823331079,
+    "brier": 0.17646714297300706,
+    "ece": 0.17231128318386046,
     "groups": {
       "diagnostic": {
         "cases": 23,
@@ -55,13 +55,13 @@
     },
     "degraded": 0,
     "latency_ms": {
-      "median": 68.47976896096952,
-      "p95": 75.48300281632692,
-      "mean": 67.18159537232513
+      "median": 68.46524099819362,
+      "p95": 73.83458259282634,
+      "mean": 67.2895791378386
     },
     "warm_ms": {
-      "median": 14.771379006560892,
-      "p95": 18.196071404963728
+      "median": 14.917188993422315,
+      "p95": 20.665550004923716
     },
     "cached_token_share": 0.3150764466808593
   },
@@ -98,42 +98,42 @@
       "lower": 0.4,
       "upper": 0.5,
       "count": 1,
-      "confidence": 0.48508702065197135,
+      "confidence": 0.48468557960120895,
       "accuracy": 0.0
     },
     {
       "lower": 0.5,
       "upper": 0.6,
       "count": 2,
-      "confidence": 0.558575607736349,
+      "confidence": 0.5591139488882308,
       "accuracy": 0.5
     },
     {
       "lower": 0.6,
       "upper": 0.7,
       "count": 6,
-      "confidence": 0.662349801033334,
+      "confidence": 0.6620550102488119,
       "accuracy": 1.0
     },
     {
       "lower": 0.7,
       "upper": 0.8,
       "count": 5,
-      "confidence": 0.7589515452235955,
+      "confidence": 0.7590027620372067,
       "accuracy": 1.0
     },
     {
       "lower": 0.8,
       "upper": 0.9,
       "count": 3,
-      "confidence": 0.8351731866458815,
+      "confidence": 0.8352987787160986,
       "accuracy": 1.0
     },
     {
       "lower": 0.9,
       "upper": 1.0,
       "count": 12,
-      "confidence": 0.9721899126947918,
+      "confidence": 0.9722794952317902,
       "accuracy": 0.9166666666666666
     }
   ],
@@ -142,19 +142,19 @@
       "case_id": "diagnostic_20_amount_76_original",
       "label": "Request manager approval.",
       "selected": "Approve automatically.",
-      "confidence": 0.14787108277799632
+      "confidence": 0.14732573612566657
     },
     {
       "case_id": "diagnostic_22_amount_100_original",
       "label": "Request manager approval.",
       "selected": "Approve automatically.",
-      "confidence": 0.09303520679128485
+      "confidence": 0.09465162174890218
     },
     {
       "case_id": "diagnostic_25_instruction_flip",
       "label": "Cancel the subscription.",
       "selected": "Keep the subscription active.",
-      "confidence": 0.6232291345575263
+      "confidence": 0.6198888037530333
     }
   ],
   "failed": []

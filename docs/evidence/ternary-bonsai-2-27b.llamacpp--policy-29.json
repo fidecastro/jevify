@@ -1,0 +1,142 @@
+{
+  "recipe": "recipes/ternary-bonsai-2-27b.llamacpp.yaml",
+  "recipe_stem": "ternary-bonsai-2-27b.llamacpp",
+  "recipe_hash": "2234882d71101fb35da234305a3dc7ab654feffbf0d0ce8c55079d27cef97c40",
+  "model": "ternary-bonsai-2-27b",
+  "backend": {
+    "kind": "endpoint",
+    "dialect": "llamacpp",
+    "version": "b1-9a9394a",
+    "base_url": "http://127.0.0.1:8082/v1",
+    "probed_at": "2026-09-20T02:39:15+00:00"
+  },
+  "suite": "policy-29",
+  "suite_file": "suites/policy-29.jsonl",
+  "suite_sha256": "c59cb29f97e78e67472206dd544c833c65bf06632d7de093760daff627b78015",
+  "expected_answers_by": "human (the author of the cases)",
+  "jevify_version": "0.1.0",
+  "python": "3.14.7",
+  "run_at": "2026-09-20T02:42:13+00:00",
+  "concurrency": 1,
+  "command": "jevify eval recipes/ternary-bonsai-2-27b.llamacpp.yaml suites/policy-29.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 29,
+      "agreement_with_label": 0.7241379310344828,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 29,
+      "same_choice": 1.0,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "ternary-bonsai-2-27b.llamacpp--policy-29--20260920T024235Z.jsonl",
+  "raw_sha256": "38ad6accbb285863a5026b5a32e80a27eed331d949ec88d5a1152aceee6be882",
+  "metrics": {
+    "cases": 29,
+    "scored": 29,
+    "errors": 0,
+    "accuracy": 1.0,
+    "log_loss": 0.0024051423718117,
+    "brier": 3.149183346597253e-05,
+    "ece": 0.0023962956731600205,
+    "groups": {
+      "diagnostic": {
+        "cases": 23,
+        "accuracy": 1.0
+      },
+      "original": {
+        "cases": 6,
+        "accuracy": 1.0
+      }
+    },
+    "degraded": 0,
+    "latency_ms": {
+      "median": 98.56473299441859,
+      "p95": 102.33167459373361,
+      "mean": 97.5601032410411
+    },
+    "warm_ms": {
+      "median": 143.9484000147786,
+      "p95": 215.2633704070467
+    },
+    "cached_token_share": 0.41653568060358376
+  },
+  "reliability": [
+    {
+      "lower": 0.0,
+      "upper": 0.1,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.1,
+      "upper": 0.2,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.2,
+      "upper": 0.3,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.3,
+      "upper": 0.4,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.4,
+      "upper": 0.5,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.5,
+      "upper": 0.6,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.6,
+      "upper": 0.7,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.7,
+      "upper": 0.8,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.8,
+      "upper": 0.9,
+      "count": 0,
+      "confidence": 0.0,
+      "accuracy": 0.0
+    },
+    {
+      "lower": 0.9,
+      "upper": 1.0,
+      "count": 29,
+      "confidence": 0.99760370432684,
+      "accuracy": 1.0
+    }
+  ],
+  "wrong": [],
+  "failed": []
+}

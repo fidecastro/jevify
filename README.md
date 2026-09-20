@@ -50,18 +50,20 @@ Four model kinds plug into the same backend port (ADR-0002):
 
 | Kind | Talks to | Proven live with |
 |---|---|---|
-| `endpoint` | Any OpenAI-compatible server; dialect extras for vLLM and llama.cpp | DeepSeek-V4-Flash (vision) on vLLM, Qwen3-VL-Reranker-8B on llama.cpp, text and images |
+| `endpoint` | Any OpenAI-compatible server; dialect extras for vLLM and llama.cpp | DeepSeek-V4-Flash on vLLM; Ternary Bonsai 2 27B and Qwen3-VL-Reranker-8B on llama.cpp; text and images on all three |
 | `rerank` | A `/v1/rerank` route | Fakes only; the llama.cpp build at hand returned zero scores for the GGUF tried |
 | `embedding` | A `/v1/embeddings` route, or a model in-process | Qwen3-Embedding-0.6B in-process; the route against fakes only |
 | `encoder` | A sequence-classification NLI head in-process (`nli` layout) | facebook/bart-large-mnli in-process |
 
-The same 29-case policy suite, one run each, all four kinds. Every row links
+The same 29-case policy suite, one run each, five recipes across the four
+kinds. Every row links
 to the scorecard that records the command, the recipe hash, the suite hash
 and the raw file's digest:
 
 | Recipe | Kind | Accuracy | Median latency | Scorecard |
 |---|---|---|---|---|
 | `deepseek-v4-flash-vision-exp-keys.vllm` | endpoint | 29/29 | 517 ms | [summary](docs/evidence/deepseek-v4-flash-vision-exp-keys.vllm--policy-29.md) |
+| `ternary-bonsai-2-27b.llamacpp` | endpoint | 29/29 | 99 ms | [summary](docs/evidence/ternary-bonsai-2-27b.llamacpp--policy-29.md) |
 | `qwen3-vl-reranker-8b.llamacpp` | endpoint | 26/29 | 68 ms | [summary](docs/evidence/qwen3-vl-reranker-8b.llamacpp--policy-29.md) |
 | `qwen3-embedding-0.6b.local` | embedding | 19/29 | 8 ms | [summary](docs/evidence/qwen3-embedding-0.6b.local--policy-29.md) |
 | `bart-large-mnli.local` | encoder | 15/29 | 7 ms | [summary](docs/evidence/bart-large-mnli.local--policy-29.md) |
@@ -77,8 +79,8 @@ Named here so that nobody has to discover it: the direct-call control (no
 "faster than generation" claim until it exists); suites beyond `policy-29`
 (instruction flips, multimodal); the rerank kind and the embedding route
 against a live server; Laya's marker-slot layout for the encoder kind; the
-Ternary Bonsai recipe (its GGUF needs a llama.cpp build with `PQ2_0`
-support); Windows. Choice menus on the endpoint kind are bounded by the
+grammar rung on the PrismML llama.cpp fork (accepted, but it does not
+constrain the reported probabilities there); Windows. Choice menus on the endpoint kind are bounded by the
 single-token identifier alphabet the probe verifies (26 on the DeepSeek
 recipe); Jev's 255-option ceiling is not reachable there.
 
