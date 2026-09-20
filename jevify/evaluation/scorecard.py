@@ -276,6 +276,14 @@ def render_markdown(summary: dict[str, Any]) -> str:
                     f"| {cell['lower']:.1f}–{cell['upper']:.1f} | {cell['count']} | "
                     f"{cell['confidence']:.3f} | {cell['accuracy']:.3f} |"
                 )
+    if summary.get("controls"):
+        lines += ["", "| control | cases | result |", "|---|---|---|"]
+        for name, control in summary["controls"].items():
+            value = control.get("agreement_with_label", control.get("same_choice"))
+            lines.append(f"| {name} | {control['cases']} | {value:.4f} |")
+        lines.append("")
+        for name, control in summary["controls"].items():
+            lines.append(f"{name}: {control['note']}.")
     if summary.get("wrong"):
         lines += ["", "| wrong case | expected | selected | confidence |", "|---|---|---|---|"]
         for w in summary["wrong"]:
@@ -305,6 +313,7 @@ def evaluate_to_files(
     evidence_dir: Path,
     concurrency: int,
     command: str,
+    controls: bool = False,
 ) -> dict[str, Any]:
     probe = recipe.probe or {}
     header = {
@@ -330,7 +339,23 @@ def evaluate_to_files(
         "concurrency": concurrency,
         "command": command,
     }
-    decisions = asyncio.run(run_suite(engine, suite, concurrency=concurrency))
+
+    async def everything() -> list[Decision]:
+        # One event loop for the main run and the controls: the backend's HTTP client keeps
+        # pooled connections that belong to the loop that opened them.
+        found = await run_suite(engine, suite, concurrency=concurrency)
+        if controls:
+            from jevify.evaluation.controls import option_permutation, shuffled_context
+
+            header["controls"] = {
+                "shuffled_context": await shuffled_context(engine, suite, concurrency=concurrency),
+                "option_permutation": await option_permutation(
+                    engine, suite, found, concurrency=concurrency
+                ),
+            }
+        return found
+
+    decisions = asyncio.run(everything())
     raw_path = write_raw(decisions, runs_dir, recipe, suite, header)
     summary = summarize_raw(raw_path)
     evidence_dir.mkdir(parents=True, exist_ok=True)

@@ -149,3 +149,17 @@ def test_raw_multimodal_uses_native_completion_with_media_marker(fixtures, fake_
     assert "<__media__>" in req["prompt"]
     assert req["prompt"].index("Screenshot") < req["prompt"].index("<__media__>")
     assert set(answer.logprobs) == {"false", "true"}
+
+
+def test_grammar_rung_floors_a_label_the_server_dropped(fixtures, fake_server_factory):
+    # A very certain "yes" drives "no" below float precision; llama.cpp then omits it from
+    # the post-sampling list. That is a certain answer, not a broken readout.
+    server, http = fake_server_factory(
+        Behaviour(dialect="llamacpp", grammar=True, scores={"yes": 0.0, "no": -800.0})
+    )
+    backend = build_backend(raw_recipe(fixtures, "grammar"), http=http)
+    [answer] = run(backend.evaluate(run(backend.warm(STATE)), [Q]))
+    assert answer.degraded is False
+    assert answer.missing == ("false",)
+    d = Distribution.from_logprobs(answer.logprobs)
+    assert d.as_mapping()["true"] > 0.999999

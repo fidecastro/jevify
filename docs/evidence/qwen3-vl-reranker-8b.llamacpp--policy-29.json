@@ -16,19 +16,33 @@
   "expected_answers_by": "human (the author of the cases)",
   "jevify_version": "0.1.0",
   "python": "3.14.7",
-  "run_at": "2026-09-20T01:26:40+00:00",
+  "run_at": "2026-09-20T01:32:08+00:00",
   "concurrency": 1,
-  "command": "jevify eval recipes/qwen3-vl-reranker-8b.llamacpp.yaml suites/policy-29.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence",
-  "raw_file": "qwen3-vl-reranker-8b.llamacpp--policy-29--20260920T012642Z.jsonl",
-  "raw_sha256": "3f9507debd89aa05392abdd74cb4d66d988b1d96db768df94f282a2044043c0d",
+  "command": "jevify eval recipes/qwen3-vl-reranker-8b.llamacpp.yaml suites/policy-29.jsonl --concurrency 1 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 29,
+      "agreement_with_label": 0.5862068965517241,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 29,
+      "same_choice": 1.0,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "qwen3-vl-reranker-8b.llamacpp--policy-29--20260920T013215Z.jsonl",
+  "raw_sha256": "7b57a40da2caee93b8bb1df46a699edb9042961f267f33d66525939223125b5e",
   "metrics": {
     "cases": 29,
     "scored": 29,
     "errors": 0,
     "accuracy": 0.896551724137931,
-    "log_loss": 0.3392598080367298,
-    "brier": 0.17729104972661158,
-    "ece": 0.1729744181979856,
+    "log_loss": 0.3384894116856606,
+    "brier": 0.17664801237094196,
+    "ece": 0.17221176193815677,
     "groups": {
       "diagnostic": {
         "cases": 23,
@@ -41,13 +55,13 @@
     },
     "degraded": 0,
     "latency_ms": {
-      "median": 69.44529598695226,
-      "p95": 73.52979658753611,
-      "mean": 66.89127613609689
+      "median": 68.47976896096952,
+      "p95": 75.48300281632692,
+      "mean": 67.18159537232513
     },
     "warm_ms": {
-      "median": 15.15408800332807,
-      "p95": 20.498118799878284
+      "median": 14.771379006560892,
+      "p95": 18.196071404963728
     },
     "cached_token_share": 0.3150764466808593
   },
@@ -84,42 +98,42 @@
       "lower": 0.4,
       "upper": 0.5,
       "count": 1,
-      "confidence": 0.48663363181146446,
+      "confidence": 0.48508702065197135,
       "accuracy": 0.0
     },
     {
       "lower": 0.5,
       "upper": 0.6,
       "count": 2,
-      "confidence": 0.5586999618486919,
+      "confidence": 0.558575607736349,
       "accuracy": 0.5
     },
     {
       "lower": 0.6,
       "upper": 0.7,
       "count": 6,
-      "confidence": 0.6603992959494973,
+      "confidence": 0.662349801033334,
       "accuracy": 1.0
     },
     {
       "lower": 0.7,
       "upper": 0.8,
       "count": 5,
-      "confidence": 0.7569920199693971,
+      "confidence": 0.7589515452235955,
       "accuracy": 1.0
     },
     {
       "lower": 0.8,
       "upper": 0.9,
       "count": 3,
-      "confidence": 0.836773610860178,
+      "confidence": 0.8351731866458815,
       "accuracy": 1.0
     },
     {
       "lower": 0.9,
       "upper": 1.0,
       "count": 12,
-      "confidence": 0.9724917733631031,
+      "confidence": 0.9721899126947918,
       "accuracy": 0.9166666666666666
     }
   ],
@@ -128,13 +142,13 @@
       "case_id": "diagnostic_20_amount_76_original",
       "label": "Request manager approval.",
       "selected": "Approve automatically.",
-      "confidence": 0.14492159188629206
+      "confidence": 0.14787108277799632
     },
     {
       "case_id": "diagnostic_22_amount_100_original",
       "label": "Request manager approval.",
       "selected": "Approve automatically.",
-      "confidence": 0.09301771684119375
+      "confidence": 0.09303520679128485
     },
     {
       "case_id": "diagnostic_25_instruction_flip",

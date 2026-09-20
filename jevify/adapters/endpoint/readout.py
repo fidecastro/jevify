@@ -146,15 +146,24 @@ class GrammarRung:
         if "messages" in body:
             body["top_logprobs"] = n
 
+    FLOOR_LOGPROB = -40.0  # below anything a float32 softmax reports before underflow
+
     @staticmethod
     def read(parsed: Parsed, part: RenderedPart) -> Readout:
         readout = read_answer_set(parsed, part, full_softmax=False)
-        if readout.missing:
+        if not readout.missing:
+            return readout
+        if not readout.logprobs:
             raise BackendError(
-                f"labels {list(readout.missing)} absent under the grammar; "
+                "no answer label returned under the grammar; "
                 "the server may not honour grammar with post-sampling probabilities"
             )
-        return readout
+        # Under a mask the reported list holds every answer with non-zero mass, so a label
+        # that is absent underflowed to zero: a certain answer, floored, not a degraded one.
+        logprobs = dict(readout.logprobs)
+        for label in readout.missing:
+            logprobs[label] = GrammarRung.FLOOR_LOGPROB
+        return Readout(logprobs, None, readout.missing, degraded=False)
 
 
 class EqualBiasRung:

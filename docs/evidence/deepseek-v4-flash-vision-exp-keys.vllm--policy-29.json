@@ -16,23 +16,37 @@
   "expected_answers_by": "human (the author of the cases)",
   "jevify_version": "0.1.0",
   "python": "3.14.7",
-  "run_at": "2026-09-20T01:26:29+00:00",
+  "run_at": "2026-09-20T01:30:32+00:00",
   "concurrency": 4,
-  "command": "jevify eval recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml suites/policy-29.jsonl --concurrency 4 --runs-dir runs --evidence-dir docs/evidence",
-  "raw_file": "deepseek-v4-flash-vision-exp-keys.vllm--policy-29--20260920T012635Z.jsonl",
-  "raw_sha256": "14b9f2755b000d8a9bb27201cb15ad0a5f97a7a731683825196da4f3cee06dca",
+  "command": "jevify eval recipes/deepseek-v4-flash-vision-exp-keys.vllm.yaml suites/policy-29.jsonl --concurrency 4 --runs-dir runs --evidence-dir docs/evidence --controls",
+  "controls": {
+    "shuffled_context": {
+      "cases": 29,
+      "agreement_with_label": 0.6896551724137931,
+      "failed": [],
+      "note": "each case answered against the next case's state; low agreement means the answers depend on the state"
+    },
+    "option_permutation": {
+      "cases": 29,
+      "same_choice": 1.0,
+      "failed": [],
+      "note": "each choice case asked again with its options reversed; the share of unchanged selections measures position stability"
+    }
+  },
+  "raw_file": "deepseek-v4-flash-vision-exp-keys.vllm--policy-29--20260920T013053Z.jsonl",
+  "raw_sha256": "bcb9e1bc8c941baaeb5641e91a23f334632caa3f595256b515521f9064ce7309",
   "metrics": {
     "cases": 29,
     "scored": 29,
     "errors": 0,
-    "accuracy": 0.9655172413793104,
-    "log_loss": 0.08169730647941742,
-    "brier": 0.05645329260376681,
-    "ece": 0.03054288180016662,
+    "accuracy": 1.0,
+    "log_loss": 0.007850773573799113,
+    "brier": 0.0023194270271876274,
+    "ece": 0.007189802860722648,
     "groups": {
       "diagnostic": {
         "cases": 23,
-        "accuracy": 0.9565217391304348
+        "accuracy": 1.0
       },
       "original": {
         "cases": 6,
@@ -41,13 +55,13 @@
     },
     "degraded": 0,
     "latency_ms": {
-      "median": 517.6380419870839,
-      "p95": 568.3916188019793,
-      "mean": 500.652407996501
+      "median": 517.2780279826839,
+      "p95": 587.4990912154317,
+      "mean": 510.88721941000426
     },
     "warm_ms": {
-      "median": 400.74064198415726,
-      "p95": 481.6007052140776
+      "median": 422.0118380035274,
+      "p95": 505.0447493966203
     },
     "cached_token_share": 0.0
   },
@@ -111,25 +125,18 @@
     {
       "lower": 0.8,
       "upper": 0.9,
-      "count": 0,
-      "confidence": 0.0,
-      "accuracy": 0.0
+      "count": 1,
+      "confidence": 0.8175615747448558,
+      "accuracy": 1.0
     },
     {
       "lower": 0.9,
       "upper": 1.0,
-      "count": 29,
-      "confidence": 0.996060123179477,
-      "accuracy": 0.9655172413793104
+      "count": 28,
+      "confidence": 0.9990690765105067,
+      "accuracy": 1.0
     }
   ],
-  "wrong": [
-    {
-      "case_id": "diagnostic_6_pointwise_instruction_5",
-      "label": "Approve automatically.",
-      "selected": "Request manager approval.",
-      "confidence": 0.7131488635505553
-    }
-  ],
+  "wrong": [],
   "failed": []
 }

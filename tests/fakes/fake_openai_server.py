@@ -186,6 +186,9 @@ class FakeOpenAIServer:
             chosen = ranked[: min(requested, b.top_k_cap)]
         entries = []
         post = bool(body.get("post_sampling_probs"))
+        if post:
+            # llama.cpp drops candidates whose post-sampling probability underflows to zero
+            chosen = [(t, lp) for t, lp in chosen if math.exp(lp) > 0.0]
         for text, lp in chosen:
             entry: dict[str, Any] = {"token": text, "bytes": list(text.encode())}
             if post:

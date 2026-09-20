@@ -5,12 +5,14 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import math
 import time
 from collections.abc import Callable, Sequence
 
 from jevify.adapters.endpoint.client import OpenAICompatibleClient
 from jevify.adapters.endpoint.dialects import base_request, parse_response
 from jevify.adapters.endpoint.readout import RUNGS
+from jevify.domain.distribution import Distribution
 from jevify.domain.questions import Question, State
 from jevify.ports.backend import (
     RUNG_RANK,
@@ -121,12 +123,93 @@ class EndpointBackend:
             )
         return rung
 
+    def _orders(self, question: Question, rendered) -> list[tuple[int, ...]] | None:
+        """Cyclic option orders when the recipe asks for permutation on an identifier-based
+        choice or score question; None means a single order."""
+        policy = self.recipe.readout.permutation
+        n = len(question.labels)
+        if policy == "none" or rendered.composition != "single" or n < 2:
+            return None
+        if policy == "full":
+            import itertools
+
+            return list(itertools.permutations(range(n)))
+        k = min(self.recipe.readout.permutation_calls, n)
+        return [tuple((i + shift) % n for i in range(n)) for shift in range(k)]
+
+    async def _permuted(
+        self,
+        handle: StateHandle,
+        question: Question,
+        rung: Rung,
+        slot: int | None,
+        orders: list[tuple[int, ...]],
+    ) -> RawAnswer:
+        """Ask once per order and average the normalized distributions, so position bias
+        cancels; the record says how many calls it took."""
+        impl = RUNGS[rung]
+        sums: dict[str, float] = dict.fromkeys(question.labels, 0.0)
+        latency_ms = 0.0
+        prompt_tokens = 0
+        cached_tokens: int | None = None
+        degraded = False
+        off_menu: list[float] = []
+        raw_parts = []
+        for order in orders:
+            part = render_question(self.recipe, question, order=order).parts[0]
+            path, body = base_request(
+                self.recipe.model.name, handle.prefix, part.text, self.dialect
+            )
+            impl.shape(body, part, self.recipe.readout.top_k, self.dialect)
+            if slot is not None:
+                body["id_slot"] = slot
+            started = self.clock()
+            post = self.client.post_root if path == "completion" else self.client.post_v1
+            response = await post(path, body)
+            latency_ms += (self.clock() - started) * 1000.0
+            parsed = parse_response(path, response, self.dialect)
+            readout = impl.read(parsed, part)
+            distribution = Distribution.from_logprobs(readout.logprobs)
+            for label, probability in distribution.as_mapping().items():
+                sums[label] += probability
+            degraded = degraded or readout.degraded
+            if readout.off_menu_mass is not None:
+                off_menu.append(readout.off_menu_mass)
+            prompt_tokens += parsed.prompt_tokens or 0
+            cached_tokens = parsed.cached_tokens
+            raw_parts.append(
+                {
+                    "path": path,
+                    "order": list(order),
+                    "entries": [e.__dict__ for e in parsed.entries],
+                }
+            )
+        k = len(orders)
+        logprobs = {label: math.log(max(total / k, 1e-300)) for label, total in sums.items()}
+        return RawAnswer(
+            question_id=question.id,
+            logprobs=logprobs,
+            semantics="readout",
+            rung=rung,
+            degraded=degraded,
+            off_menu_mass=(sum(off_menu) / len(off_menu)) if off_menu else None,
+            latency_ms=latency_ms,
+            prompt_tokens=prompt_tokens,
+            cached_tokens=cached_tokens,
+            calls=k,
+            composition="permuted",
+            raw={"parts": raw_parts},
+        )
+
     async def _answer(
         self, handle: StateHandle, question: Question, rung: Rung, slot: int | None = None
     ) -> RawAnswer:
         """One request per part; a single-part question is the readout itself, a per-option
         question composes each option's yes-minus-no logit into one distribution."""
         rendered = render_question(self.recipe, question)
+        orders = self._orders(question, rendered)
+        if orders is not None:
+            return await self._permuted(handle, question, rung, slot, orders)
         impl = RUNGS[rung]
         readouts = []
         latency_ms = 0.0

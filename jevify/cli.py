@@ -108,6 +108,11 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument(
         "--evidence-dir", type=Path, default=Path("docs/evidence"), help="committed summaries"
     )
+    ev.add_argument(
+        "--controls",
+        action="store_true",
+        help="also run the shuffled-context and option-permutation controls",
+    )
     probe = commands.add_parser(
         "probe", help="measure a backend and write its capabilities into the recipe"
     )
@@ -150,6 +155,7 @@ def run_eval(args: argparse.Namespace) -> int:
     command = (
         f"jevify eval {args.recipe} {args.suite} --concurrency {args.concurrency}"
         f" --runs-dir {args.runs_dir} --evidence-dir {args.evidence_dir}"
+        + (" --controls" if args.controls else "")
     )
     report = evaluate_to_files(
         build_engine(recipe),
@@ -160,6 +166,7 @@ def run_eval(args: argparse.Namespace) -> int:
         evidence_dir=args.evidence_dir,
         concurrency=max(1, args.concurrency),
         command=command,
+        controls=args.controls,
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
