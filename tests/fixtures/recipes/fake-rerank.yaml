@@ -1,0 +1,17 @@
+# Test recipe: a reranker behind a /v1/rerank endpoint (llama.cpp, TEI, Infinity, vLLM shape).
+schema_version: 1
+model:
+  name: fake-reranker-endpoint
+  kind: rerank
+endpoint:
+  base_url: http://fake/v1
+  dialect: llamacpp
+  timeout_s: 30
+rerank:
+  path: rerank
+  query: "{state}"
+  document: "{text}"
+provenance:
+  author: tests
+  created: "2026-09-20"
+  status: draft

@@ -91,6 +91,8 @@ def _identifier_text(group: Sequence[Token]) -> str:
 
 def render_prefix(recipe: Recipe, state: State) -> RenderedPrefix:
     template = recipe.template
+    if template is None:
+        raise RecipeError("this recipe kind has no prompt template")
     images = tuple(part for part in state.parts if isinstance(part, ImagePart))
     if template.mode == "raw":
         assert template.raw is not None  # validated by the schema
@@ -115,6 +117,8 @@ def render_prefix(recipe: Recipe, state: State) -> RenderedPrefix:
 def render_question(
     recipe: Recipe, question: Question, order: tuple[int, ...] | None = None
 ) -> RenderedQuestion:
+    if recipe.template is None or recipe.answers is None:
+        raise RecipeError("this recipe kind has no prompt template")
     templates = recipe.template.questions
     instructions = question.instructions or ""
     noul_tokens = {

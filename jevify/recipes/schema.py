@@ -114,6 +114,18 @@ class Calibration(_Strict):
     evidence: str | None = None
 
 
+class RerankSpec(_Strict):
+    """How a rerank-kind recipe forms its query and documents."""
+
+    path: str = "rerank"  # under /v1
+    query: str = "{state}"
+    # placeholders: {key}, {description} (with description_sep), {text} = description or key
+    document: str = "{text}"
+    description_sep: str = ": "
+    instruction: str | None = None  # some rerank APIs take one; sent as `instruction` if set
+    score_field: str = "relevance_score"
+
+
 class Provenance(_Strict):
     author: str
     created: str
@@ -127,8 +139,9 @@ class Recipe(_Strict):
     schema_version: Literal[1]
     model: ModelSpec
     endpoint: EndpointSpec | None = None
-    template: TemplateSpec
-    answers: AnswersSpec
+    template: TemplateSpec | None = None
+    answers: AnswersSpec | None = None
+    rerank: RerankSpec | None = None
     readout: ReadoutSpec = Field(default_factory=ReadoutSpec)
     budgets: Budgets | None = None
     calibration: Calibration | None = None
@@ -136,7 +149,11 @@ class Recipe(_Strict):
     provenance: Provenance
 
     @model_validator(mode="after")
-    def _check_endpoint(self) -> Recipe:
-        if self.model.kind == "endpoint" and self.endpoint is None:
-            raise ValueError("an endpoint recipe needs an endpoint section")
+    def _check_kind(self) -> Recipe:
+        if self.model.kind in ("endpoint", "rerank", "embedding") and self.endpoint is None:
+            raise ValueError(f"a {self.model.kind} recipe needs an endpoint section")
+        if self.model.kind == "endpoint" and (self.template is None or self.answers is None):
+            raise ValueError("an endpoint recipe needs template and answers sections")
+        if self.model.kind == "rerank" and self.rerank is None:
+            raise ValueError("a rerank recipe needs a rerank section")
         return self

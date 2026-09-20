@@ -40,4 +40,18 @@ def build_backend(recipe: Recipe, *, http: Any | None = None) -> Backend:
             http=http,
         )
         return EndpointBackend(client, recipe)
+    if recipe.model.kind == "rerank":
+        from jevify.adapters.rerank.adapter import RerankBackend
+
+        assert recipe.endpoint is not None
+        api_key = (
+            os.environ.get(recipe.endpoint.api_key_env) if recipe.endpoint.api_key_env else None
+        )
+        client = OpenAICompatibleClient(
+            recipe.endpoint.base_url,
+            api_key=api_key,
+            timeout_s=recipe.endpoint.timeout_s,
+            http=http,
+        )
+        return RerankBackend(client, recipe)
     raise BackendError(f"model kind {recipe.model.kind!r} has no adapter yet")

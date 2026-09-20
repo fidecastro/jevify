@@ -49,6 +49,7 @@ class Behaviour:
     warm_ms: float = 2.0
     slots: int = 2  # llama.cpp only: parallel slots, each with its own cache
     grammar: bool = False  # llama.cpp only: honour a GBNF grammar with post-sampling probs
+    rerank_scores: dict[str, float] = field(default_factory=dict)  # document text -> score
     multimodal: bool = False  # accept image content parts / native multimodal_data
     # answer texts that tokenize to two tokens on this "model" (probe must catch them)
     multi_token_answers: set[str] = field(default_factory=set)
@@ -123,6 +124,7 @@ class FakeOpenAIServer:
             Route("/v1/completions", self.completions, methods=["POST"]),
             Route("/v1/models", self.models, methods=["GET"]),
             Route("/tokenize", self.tokenize, methods=["POST"]),
+            Route("/v1/rerank", self.rerank, methods=["POST"]),
         ]
         if self.behaviour.dialect == "vllm":
             routes.append(Route("/version", self.version, methods=["GET"]))
@@ -426,6 +428,23 @@ class FakeOpenAIServer:
                 "tokens_evaluated": usage["prompt_tokens"],
                 "tokens_cached": 0,
                 "completion_probabilities": [self._content_entry(sampled, entries, body)],
+            }
+        )
+
+    async def rerank(self, request: Request) -> JSONResponse:
+        body = await request.json()
+        if (gated := self._gate(body, "/v1/rerank")) is not None:
+            return gated
+        results = [
+            {"index": i, "relevance_score": self.behaviour.rerank_scores.get(doc, 0.0)}
+            for i, doc in enumerate(body["documents"])
+        ]
+        return self._record(
+            {
+                "model": body.get("model", "fake"),
+                "object": "list",
+                "results": results,
+                "usage": {"prompt_tokens": 10 * len(body["documents"]), "total_tokens": 10},
             }
         )
 

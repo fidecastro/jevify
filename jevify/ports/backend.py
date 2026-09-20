@@ -19,6 +19,7 @@ class Rung(StrEnum):
     TOP_K = "top_k"
     EQUAL_BIAS = "equal_bias"
     TOP_K_FLOOR = "top_k_floor"
+    NATIVE = "native"  # a kind whose backend scores natively (rerank, embedding)
 
 
 RUNG_RANK: tuple[Rung, ...] = (
