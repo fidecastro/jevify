@@ -26,6 +26,7 @@ def test_load_valid_fixture() -> None:
     assert recipe.template.mode == "messages"
     assert recipe.answers.noul["true"][0].id == 14452
     assert len(recipe.answers.identifiers) == 4
+    assert recipe.provenance.notes == ["fixture recipe for the fake vLLM dialect"]
 
 
 def test_invalid_recipe_names_field(tmp_path: Path) -> None:

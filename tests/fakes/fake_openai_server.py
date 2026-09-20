@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -42,6 +43,8 @@ class Behaviour:
     scores_when: list[tuple[str, dict[str, float]]] = field(default_factory=list)
     rate_limit_first: int = 0
     version: str = "0.99.0-fake"
+    # answer texts that tokenize to two tokens on this "model" (probe must catch them)
+    multi_token_answers: set[str] = field(default_factory=set)
 
 
 class FakeTokenizer:
@@ -69,9 +72,13 @@ class FakeTokenizer:
             return self.KNOWN[text]
         return 100_000 + int.from_bytes(hashlib.sha1(text.encode()).digest()[:3], "big")
 
+    @staticmethod
+    def pieces(text: str) -> list[str]:
+        """Word pieces that keep their leading space, like a byte-level BPE would."""
+        return re.findall(r"\n|\s?[^\s]+", text)
+
     def encode(self, text: str) -> list[int]:
-        pieces = text.replace("\n", " \n ").split(" ")
-        return [self.id_of(p) for p in pieces if p != ""]
+        return [self.id_of(p) for p in self.pieces(text)]
 
 
 class FakeOpenAIServer:
@@ -297,8 +304,12 @@ class FakeOpenAIServer:
                     {
                         "id": "fake-model",
                         "object": "model",
-                        "max_model_len": self.behaviour.max_context,
                         "owned_by": self.behaviour.dialect,
+                        **(
+                            {"meta": {"n_ctx_train": 10 * self.behaviour.max_context}}
+                            if self.behaviour.dialect == "llamacpp"
+                            else {"max_model_len": self.behaviour.max_context}
+                        ),
                     }
                 ],
             }
@@ -308,7 +319,13 @@ class FakeOpenAIServer:
         return JSONResponse({"version": self.behaviour.version})
 
     async def props(self, request: Request) -> JSONResponse:
-        return JSONResponse({"build_info": f"b{self.behaviour.version}", "total_slots": 2})
+        return JSONResponse(
+            {
+                "build_info": f"b{self.behaviour.version}",
+                "total_slots": 2,
+                "default_generation_settings": {"n_ctx": self.behaviour.max_context},
+            }
+        )
 
     async def tokenize(self, request: Request) -> JSONResponse:
         if not self.behaviour.supports_tokenize:
@@ -316,6 +333,8 @@ class FakeOpenAIServer:
         body = await request.json()
         if self.behaviour.dialect == "llamacpp":
             ids = self.tokenizer.encode(body["content"])
+            if body["content"] in self.behaviour.multi_token_answers:
+                ids = ids + [self.tokenizer.id_of(body["content"] + "#2")]
             if body.get("with_pieces"):
                 return JSONResponse(
                     {
@@ -330,6 +349,10 @@ class FakeOpenAIServer:
         if text is None:
             text = self._rendered_chat(body)
         ids = self.tokenizer.encode(text)
+        if body.get("prompt") is not None and self.behaviour.multi_token_answers:
+            # the switch: a chosen answer text splits into two tokens on this "model"
+            if text in self.behaviour.multi_token_answers:
+                ids = ids + [self.tokenizer.id_of(text + "#2")]
         return JSONResponse(
             {
                 "count": len(ids),

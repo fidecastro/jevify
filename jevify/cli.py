@@ -24,7 +24,7 @@ from jevify.domain.questions import (
     State,
 )
 from jevify.ports.backend import BackendError
-from jevify.recipes import RecipeError, load_recipe, recipe_hash
+from jevify.recipes import RecipeError, apply_probe, load_recipe, recipe_hash
 
 
 class UsageError(ValueError):
@@ -68,7 +68,36 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="ID:STATEMENT",
         help="a noul question: probability that the statement holds; repeatable",
     )
+    probe = commands.add_parser(
+        "probe", help="measure a backend and write its capabilities into the recipe"
+    )
+    probe.add_argument("recipe", type=Path)
+    probe.add_argument(
+        "--dry-run", action="store_true", help="print the capabilities, do not write"
+    )
     return parser
+
+
+def run_probe(args: argparse.Namespace) -> int:
+    from jevify.compose import build_backend
+    from jevify.recipes import dump_recipe
+
+    recipe = load_recipe(args.recipe)
+    before = recipe_hash(recipe)
+    capabilities = asyncio.run(build_backend(recipe).probe())
+    updated = apply_probe(recipe, capabilities)
+    after = recipe_hash(updated)
+    report = {
+        "recipe": str(args.recipe),
+        "hash_before": before,
+        "hash_after": after,
+        "capabilities": capabilities.to_dict(),
+    }
+    if not args.dry_run:
+        dump_recipe(updated, args.recipe)
+        report["written"] = True
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0
 
 
 def parse_questions(args: argparse.Namespace) -> list[Question]:
@@ -144,7 +173,7 @@ def run_ask(args: argparse.Namespace) -> int:
     return 0
 
 
-COMMANDS = {"ask": run_ask}
+COMMANDS = {"ask": run_ask, "probe": run_probe}
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -1,6 +1,3 @@
-# DeepSeek V4 Flash Vision (abliterated "keys" variant) served by vLLM on the dual DGX Spark.
-# Chat "messages" mode with the model's thinking switch off, which puts the answer at the
-# first generated token (measured 2026-09-19). Token ids come from the server's /tokenize.
 schema_version: 1
 model:
   name: deepseek-v4-flash-vision-exp-keys
@@ -9,70 +6,276 @@ model:
 endpoint:
   base_url: http://192.168.2.20:8888/v1
   dialect: vllm
-  timeout_s: 300
+  timeout_s: 300.0
 template:
   mode: messages
-  system: "You answer typed questions about the state with a single token."
-  state: "State:\n{state}"
-  state_end: "\n\n"
+  system: You answer typed questions about the state with a single token.
+  state: 'State:
+
+    {state}'
+  state_end: '
+
+
+    '
   kwargs:
     thinking: false
   questions:
-    choice: "Question: {instructions}\nOptions:\n{options}\nAnswer with the identifier of the best option."
-    option_line: "{identifier}. {key}{description}"
-    description_sep: ": "
-    score: "Question: {instructions}\nLevels:\n{levels}\nAnswer with the identifier of the level that applies."
-    level_line: "{identifier}. {text}"
-    noul: "Question: {instructions}\nAnswer with exactly one word, yes or no."
+    choice: 'Question: {instructions}
+
+      Options:
+
+      {options}
+
+      Answer with the identifier of the best option.'
+    option_line: '{identifier}. {key}{description}'
+    description_sep: ': '
+    score: 'Question: {instructions}
+
+      Levels:
+
+      {levels}
+
+      Answer with the identifier of the level that applies.'
+    level_line: '{identifier}. {text}'
+    noul: 'Question: {instructions}
+
+      Answer with exactly one word, yes or no.'
+    choice_strategy: identifiers
 answers:
-  # At this slot the model answers without a leading space; the space variants carry
-  # far less mass but are legitimate spellings, so every variant is one token set.
   noul:
-    "true":
-      - { text: "yes", id: 16520 }
-      - { text: "Yes", id: 10240 }
-      - { text: "YES", id: 51346 }
-      - { text: " yes", id: 14452 }
-      - { text: " Yes", id: 11608 }
-    "false":
-      - { text: "no", id: 3567 }
-      - { text: "No", id: 4484 }
-      - { text: "NO", id: 13909 }
-      - { text: " no", id: 1119 }
-      - { text: " No", id: 3011 }
+    'true':
+    - text: 'yes'
+      id: 16520
+    - text: 'Yes'
+      id: 10240
+    - text: 'YES'
+      id: 51346
+    - text: ' yes'
+      id: 14452
+    - text: ' Yes'
+      id: 11608
+    'false':
+    - text: 'no'
+      id: 3567
+    - text: 'No'
+      id: 4484
+    - text: 'NO'
+      id: 13909
+    - text: ' no'
+      id: 1119
+    - text: ' No'
+      id: 3011
   identifiers:
-    - [{ text: "A", id: 35 }, { text: " A", id: 334 }]
-    - [{ text: "B", id: 36 }, { text: " B", id: 406 }]
-    - [{ text: "C", id: 37 }, { text: " C", id: 345 }]
-    - [{ text: "D", id: 38 }, { text: " D", id: 420 }]
-    - [{ text: "E", id: 39 }, { text: " E", id: 446 }]
-    - [{ text: "F", id: 40 }, { text: " F", id: 447 }]
-    - [{ text: "G", id: 41 }, { text: " G", id: 489 }]
-    - [{ text: "H", id: 42 }, { text: " H", id: 437 }]
-    - [{ text: "I", id: 43 }, { text: " I", id: 342 }]
-    - [{ text: "J", id: 44 }, { text: " J", id: 552 }]
-    - [{ text: "K", id: 45 }, { text: " K", id: 657 }]
-    - [{ text: "L", id: 46 }, { text: " L", id: 462 }]
-    - [{ text: "M", id: 47 }, { text: " M", id: 373 }]
-    - [{ text: "N", id: 48 }, { text: " N", id: 471 }]
-    - [{ text: "O", id: 49 }, { text: " O", id: 541 }]
-    - [{ text: "P", id: 50 }, { text: " P", id: 380 }]
-    - [{ text: "Q", id: 51 }, { text: " Q", id: 1646 }]
-    - [{ text: "R", id: 52 }, { text: " R", id: 433 }]
-    - [{ text: "S", id: 53 }, { text: " S", id: 327 }]
-    - [{ text: "T", id: 54 }, { text: " T", id: 330 }]
-    - [{ text: "U", id: 55 }, { text: " U", id: 628 }]
-    - [{ text: "V", id: 56 }, { text: " V", id: 721 }]
-    - [{ text: "W", id: 57 }, { text: " W", id: 448 }]
-    - [{ text: "X", id: 58 }, { text: " X", id: 2137 }]
-    - [{ text: "Y", id: 59 }, { text: " Y", id: 894 }]
-    - [{ text: "Z", id: 60 }, { text: " Z", id: 1653 }]
+  - - text: A
+      id: 35
+    - text: ' A'
+      id: 334
+  - - text: B
+      id: 36
+    - text: ' B'
+      id: 406
+  - - text: C
+      id: 37
+    - text: ' C'
+      id: 345
+  - - text: D
+      id: 38
+    - text: ' D'
+      id: 420
+  - - text: E
+      id: 39
+    - text: ' E'
+      id: 446
+  - - text: F
+      id: 40
+    - text: ' F'
+      id: 447
+  - - text: G
+      id: 41
+    - text: ' G'
+      id: 489
+  - - text: H
+      id: 42
+    - text: ' H'
+      id: 437
+  - - text: I
+      id: 43
+    - text: ' I'
+      id: 342
+  - - text: J
+      id: 44
+    - text: ' J'
+      id: 552
+  - - text: K
+      id: 45
+    - text: ' K'
+      id: 657
+  - - text: L
+      id: 46
+    - text: ' L'
+      id: 462
+  - - text: M
+      id: 47
+    - text: ' M'
+      id: 373
+  - - text: N
+      id: 48
+    - text: ' N'
+      id: 471
+  - - text: O
+      id: 49
+    - text: ' O'
+      id: 541
+  - - text: P
+      id: 50
+    - text: ' P'
+      id: 380
+  - - text: Q
+      id: 51
+    - text: ' Q'
+      id: 1646
+  - - text: R
+      id: 52
+    - text: ' R'
+      id: 433
+  - - text: S
+      id: 53
+    - text: ' S'
+      id: 327
+  - - text: T
+      id: 54
+    - text: ' T'
+      id: 330
+  - - text: U
+      id: 55
+    - text: ' U'
+      id: 628
+  - - text: V
+      id: 56
+    - text: ' V'
+      id: 721
+  - - text: W
+      id: 57
+    - text: ' W'
+      id: 448
+  - - text: X
+      id: 58
+    - text: ' X'
+      id: 2137
+  - - text: Y
+      id: 59
+    - text: ' Y'
+      id: 894
+  - - text: Z
+      id: 60
+    - text: ' Z'
+      id: 1653
 readout:
   rung: top_k
   top_k: 20
   permutation: none
+  permutation_calls: 1
+probe:
+  kind: endpoint
+  model: deepseek-v4-flash-vision-exp-keys
+  dialect: vllm
+  backend_version: 0.25.2.dev0+g752a3a504.d20260714
+  max_context: 1048576
+  modalities:
+  - text
+  rungs:
+  - top_k
+  - top_k_floor
+  top_k_cap: null
+  logprobs_post_bias: null
+  prefill_honored: null
+  template_kwargs_honored: true
+  token_ids_verified: true
+  answer_tokens:
+    'yes': 16520
+    'Yes': 10240
+    'YES': 51346
+    ' yes': 14452
+    ' Yes': 11608
+    'no': 3567
+    'No': 4484
+    'NO': 13909
+    ' no': 1119
+    ' No': 3011
+    A: 35
+    ' A': 334
+    B: 36
+    ' B': 406
+    C: 37
+    ' C': 345
+    D: 38
+    ' D': 420
+    E: 39
+    ' E': 446
+    F: 40
+    ' F': 447
+    G: 41
+    ' G': 489
+    H: 42
+    ' H': 437
+    I: 43
+    ' I': 342
+    J: 44
+    ' J': 552
+    K: 45
+    ' K': 657
+    L: 46
+    ' L': 462
+    M: 47
+    ' M': 373
+    N: 48
+    ' N': 471
+    O: 49
+    ' O': 541
+    P: 50
+    ' P': 380
+    Q: 51
+    ' Q': 1646
+    R: 52
+    ' R': 433
+    S: 53
+    ' S': 327
+    T: 54
+    ' T': 330
+    U: 55
+    ' U': 628
+    V: 56
+    ' V': 721
+    W: 57
+    ' W': 448
+    X: 58
+    ' X': 2137
+    Y: 59
+    ' Y': 894
+    Z: 60
+    ' Z': 1653
+  multi_token_answers: []
+  cache:
+    block_tokens: 256
+    first_ms: 279.00832798331976
+    second_ms: 279.31034701759927
+    cached_tokens: 768
+  fanout: null
+  probed_at: '2026-09-20T01:00:53+00:00'
+  notes:
+  - 'logit_bias rejected: POST http://192.168.2.20:8888/v1/chat/completions returned 400: The min_p and
+    logit_bias sampling parameters are not yet supported with speculative decoding.'
 provenance:
   author: Felipe Infante de Castro
-  created: "2026-09-19"
-  status: draft
-  launch: "vLLM 0.25.2.dev0+g752a3a504.d20260714; max_model_len 1048576; prefix caching on, 256-token blocks"
+  created: '2026-09-19'
+  status: probed
+  launch: vLLM 0.25.2.dev0+g752a3a504.d20260714; max_model_len 1048576; prefix caching on, 256-token blocks
+  scorecards: []
+  notes:
+  - 'Chat messages mode with chat_template_kwargs thinking=false: measured 2026-09-19, the default template
+    injects a ~90-token reasoning preamble and opens <think>; with the switch the first generated token
+    is the answer.'
+  - At the answer slot the model answers without a leading space; the space variants carry far less mass
+    but are legitimate spellings, so each label is a token set.
+  - This build ignores logprob_token_ids and return_as_token_id; the deployment runs speculative decoding,
+    which rejects logit_bias, so rungs 1, 2 and 4 are unavailable here (probe notes).

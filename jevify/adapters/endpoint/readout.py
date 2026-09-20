@@ -88,4 +88,37 @@ class TopKRung:
         return readout
 
 
-RUNGS: dict[Rung, type[TopKRung]] = {Rung.TOP_K: TopKRung}
+class NamedTokenLogprobsRung:
+    """Rung 1: ask vLLM for exactly the answer token ids; exact, off-menu mass visible."""
+
+    rung = Rung.NAMED_TOKEN_LOGPROBS
+
+    @staticmethod
+    def available(capabilities: Capabilities | None) -> bool:
+        return bool(capabilities and Rung.NAMED_TOKEN_LOGPROBS in capabilities.rungs)
+
+    @staticmethod
+    def shape(body: dict[str, Any], part: RenderedPart, top_k: int, dialect: Dialect) -> None:
+        ids = sorted({t.id for lbl in part.labels for t in part.tokens[lbl] if t.id is not None})
+        if not ids:
+            raise BackendError("named-token readout needs verified token ids; run the probe")
+        body["logprobs"] = True
+        body["top_logprobs"] = 1
+        body["logprob_token_ids"] = ids
+        body["return_as_token_id"] = True
+
+    @staticmethod
+    def read(parsed: Parsed, part: RenderedPart) -> Readout:
+        readout = read_answer_set(parsed, part, full_softmax=True)
+        if readout.missing:
+            raise BackendError(
+                f"labels {list(readout.missing)} missing from the named-token logprobs; "
+                "the backend may have ignored logprob_token_ids (re-run the probe)"
+            )
+        return readout
+
+
+RUNGS: dict[Rung, type[TopKRung] | type[NamedTokenLogprobsRung]] = {
+    Rung.TOP_K: TopKRung,
+    Rung.NAMED_TOKEN_LOGPROBS: NamedTokenLogprobsRung,
+}

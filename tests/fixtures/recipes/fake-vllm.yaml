@@ -42,3 +42,5 @@ provenance:
   author: tests
   created: "2026-09-19"
   status: draft
+  notes:
+    - fixture recipe for the fake vLLM dialect

@@ -117,6 +117,7 @@ class Provenance(_Strict):
     created: str
     status: Literal["draft", "probed", "scored"] = "draft"
     launch: str | None = None
+    notes: list[str] = Field(default_factory=list)
     scorecards: list[str] = Field(default_factory=list)
 
 

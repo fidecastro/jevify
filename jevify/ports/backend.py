@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 from typing import Any, Literal, Protocol
 
@@ -70,9 +70,36 @@ class Capabilities:
     prefill_honored: bool | None = None
     template_kwargs_honored: bool | None = None
     token_ids_verified: bool = False
+    answer_tokens: dict[str, int] = field(default_factory=dict)
+    multi_token_answers: tuple[str, ...] = ()
     cache: CacheEvidence | None = None
     fanout: FanoutEvidence | None = None
     probed_at: str | None = None
+    notes: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        """A plain, YAML-friendly record for the recipe's `probe` section."""
+        payload = asdict(self)
+        payload["dialect"] = str(self.dialect) if self.dialect else None
+        payload["modalities"] = sorted(self.modalities)
+        payload["rungs"] = [str(r) for r in RUNG_RANK if r in self.rungs]
+        payload["multi_token_answers"] = list(self.multi_token_answers)
+        payload["notes"] = list(self.notes)
+        return payload
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> Capabilities:
+        data = dict(payload)
+        data["dialect"] = Dialect(data["dialect"]) if data.get("dialect") else None
+        data["modalities"] = frozenset(data.get("modalities") or ["text"])
+        data["rungs"] = frozenset(Rung(r) for r in data.get("rungs") or [])
+        data["multi_token_answers"] = tuple(data.get("multi_token_answers") or ())
+        data["notes"] = tuple(data.get("notes") or ())
+        if data.get("cache") is not None:
+            data["cache"] = CacheEvidence(**data["cache"])
+        if data.get("fanout") is not None:
+            data["fanout"] = FanoutEvidence(**data["fanout"])
+        return cls(**data)
 
 
 @dataclass(frozen=True)

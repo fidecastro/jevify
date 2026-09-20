@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from jevify.recipes.render import RenderedPrefix, RenderedQuestion, render_prefix, render_question
 from jevify.recipes.schema import Recipe, Token
-from jevify.recipes.store import RecipeError, dump_recipe, load_recipe, recipe_hash
+from jevify.recipes.store import RecipeError, apply_probe, dump_recipe, load_recipe, recipe_hash
 
 __all__ = [
     "Recipe",
@@ -12,6 +12,7 @@ __all__ = [
     "RenderedPrefix",
     "RenderedQuestion",
     "Token",
+    "apply_probe",
     "dump_recipe",
     "load_recipe",
     "recipe_hash",

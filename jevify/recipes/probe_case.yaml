@@ -1,0 +1,70 @@
+# The fixed input the probe uses on every backend (ADR-0002 D3). It is data, not code, so
+# no prompt text lives in a Python module (INV-6). The state is long enough (well over
+# a thousand tokens on common tokenizers) that prefix-cache block granularity is visible.
+# Markers that mean "the template opened a reasoning block": the probe checks the rendered tail.
+think_markers: ["<think>"]
+statement: "The customer threatens to cancel the subscription."
+contradiction: "The customer is pleased with the service."
+state: |
+  Support ticket transcript.
+
+  Customer: I was charged twice for my subscription this month. The first charge went through on
+  the third and the second one on the fourth, both for the full annual amount. I already sent the
+  receipts to your billing address last week and nobody answered. I have been a customer for six
+  years and this is the third billing problem in a row. I am furious. I want the duplicate payment
+  returned to my card today, not as store credit, and I want a written confirmation that it will
+  not happen again. If this is not fixed by the end of the day I will cancel and dispute the
+  charge with my bank.
+
+  Agent: I am sorry about the duplicate charge and about the wait for an answer. I can see both
+  transactions on your account. Refunds to the original card take three to five business days to
+  appear, but I can issue the refund right now and send you the confirmation number.
+
+  Customer: Three to five days is not today. The second charge already overdrew my account and
+  the bank is charging me a fee for it. Who pays for that? I do not want to hear about your
+  process, I want the money back and I want someone to take responsibility.
+
+  Agent: I understand. I will issue the refund now and I will also add a credit for the overdraft
+  fee once you send me the bank statement showing it. I am escalating the ticket to the billing
+  lead so you get a written explanation of why the charge was duplicated.
+
+  Customer: Fine. Send the confirmation number. And I still expect the written explanation. If I
+  see one more duplicate charge I am gone, and I will tell everyone in my department to cancel as
+  well.
+
+  Agent: Understood. The refund confirmation number is RF-48213-Q. You will receive the written
+  explanation within two business days. Is there anything else I can help you with today?
+
+  Customer: No. Just make sure it does not happen again.
+
+  Internal notes. Account tier: business annual. Tenure: six years. Prior tickets: two billing
+  incidents in the last twelve months, both resolved with refunds. Sentiment on this ticket:
+  negative, explicit cancellation threat, explicit escalation request, explicit request for a
+  written explanation. Recommended queue: billing, priority high. Recommended follow-up: the
+  billing lead sends a written root cause within two business days and confirms the overdraft
+  fee credit once the statement arrives.
+
+  Appendix A. Earlier ticket, resolved. Customer: My invoice for March shows two line items for
+  the same seat. Agent: You are right, the second line item is a duplicate; I have voided it and
+  reissued the invoice. Customer: Thank you, that was quick. Agent: You are welcome.
+
+  Appendix B. Earlier ticket, resolved. Customer: The renewal email said my card would be charged
+  on the first, but the charge came through on the twenty-eighth of the previous month. Agent: The
+  renewal ran early because of a calendar error on our side; I have refunded the difference in
+  interest and moved your renewal date back to the first. Customer: Okay, as long as it is fixed.
+
+  Appendix C. Product context. The subscription includes ten seats, priority support, and a
+  quarterly usage report. The customer uses eight seats. Usage has been stable for four quarters.
+  The account owner is the person on this ticket. No open feature requests. No open outages
+  affecting this account during the billing period.
+
+  Appendix D. Policy excerpts. Duplicate charges are refunded to the original payment method
+  within five business days of confirmation. Overdraft fees caused by a duplicate charge are
+  credited on receipt of a bank statement. Written root-cause explanations are provided on
+  request for any billing incident. Cancellation requests made during an open billing dispute are
+  held for seven days so the dispute can be resolved first, and the customer is told this.
+
+  Appendix E. Glossary. Duplicate charge: two captures of the same authorization. Store credit:
+  a balance usable against future invoices. Root cause: the specific system or human error that
+  produced the incident. Escalation: transfer of a ticket to a named lead with a response time
+  commitment.

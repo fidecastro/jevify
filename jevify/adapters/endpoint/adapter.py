@@ -13,6 +13,7 @@ from jevify.adapters.endpoint.dialects import base_request, parse_response
 from jevify.adapters.endpoint.readout import RUNGS
 from jevify.domain.questions import Question, State
 from jevify.ports.backend import (
+    RUNG_RANK,
     BackendError,
     Capabilities,
     Dialect,
@@ -48,7 +49,9 @@ class EndpointBackend:
         )
 
     async def probe(self) -> Capabilities:
-        raise BackendError("probe is not implemented yet; pin readout.rung in the recipe")
+        from jevify.adapters.endpoint.probe import Prober
+
+        return await Prober(self.client, self.recipe, self.clock).run()
 
     async def warm(self, state: State) -> StateHandle:
         prefix = render_prefix(self.recipe, state)
@@ -72,14 +75,27 @@ class EndpointBackend:
 
     def _resolve_rung(self) -> Rung:
         pinned = self.recipe.readout.rung
+        proven = (
+            Capabilities.from_dict(self.recipe.probe).rungs if self.recipe.probe else frozenset()
+        )
         if pinned == "auto":
-            raise BackendError(
-                "readout.rung is auto but the recipe has no probe section; "
-                "run `jevify probe <recipe>` or pin a rung"
-            )
+            if not self.recipe.probe:
+                raise BackendError(
+                    "readout.rung is auto but the recipe has no probe section; "
+                    "run `jevify probe <recipe>` or pin a rung"
+                )
+            for rung in RUNG_RANK:
+                if rung in proven and rung in RUNGS:
+                    return rung
+            raise BackendError("the probe proved no rung this build implements")
         rung = Rung(pinned)
         if rung not in RUNGS:
             raise BackendError(f"rung {rung} is not implemented yet")
+        if self.recipe.probe and rung not in proven:
+            raise BackendError(
+                f"readout.rung {rung} is pinned but the probe did not prove it; "
+                f"proven: {[str(r) for r in RUNG_RANK if r in proven]}"
+            )
         return rung
 
     async def _answer(self, handle: StateHandle, question: Question, rung: Rung) -> RawAnswer:

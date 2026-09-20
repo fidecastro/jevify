@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from typing import Any
 
 import yaml
 from pydantic import ValidationError
@@ -57,3 +58,22 @@ def recipe_hash(recipe: Recipe) -> str:
         ensure_ascii=False,
     )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def apply_probe(recipe: Recipe, capabilities: Any) -> Recipe:
+    """Return the recipe with the probe's findings written in: capabilities, verified ids,
+    the detected dialect, and the provenance status."""
+    document = recipe.model_dump(mode="json")
+    document["probe"] = capabilities.to_dict()
+    if capabilities.answer_tokens:
+        for group in document["answers"]["noul"].values():
+            for token in group:
+                token["id"] = capabilities.answer_tokens.get(token["text"], token.get("id"))
+        for group in document["answers"]["identifiers"]:
+            for token in group:
+                token["id"] = capabilities.answer_tokens.get(token["text"], token.get("id"))
+    if document.get("endpoint") and capabilities.dialect:
+        document["endpoint"]["dialect"] = str(capabilities.dialect)
+    if document["provenance"]["status"] == "draft":
+        document["provenance"]["status"] = "probed"
+    return Recipe.model_validate(document)

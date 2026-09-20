@@ -1,8 +1,3 @@
-# Qwen3-VL-Reranker-8B (Q8_0 GGUF) served by llama.cpp on the local RTX 4090.
-# A reranker driven as a causal model through its own template: the fixed system line and
-# the query (our state) form the shared prefix; each question becomes the document, and the
-# trained yes/no readout answers it. Raw completions mode, so the control tokens are exact.
-# Token ids are unverified until `jevify probe` fills them from the server's /tokenize.
 schema_version: 1
 model:
   name: qwen3-vl-reranker-8b
@@ -11,46 +6,153 @@ model:
 endpoint:
   base_url: http://127.0.0.1:8081/v1
   dialect: llamacpp
-  timeout_s: 300
+  timeout_s: 300.0
 template:
   mode: raw
-  # No empty think block: the Qwen3-VL base has no thinking mode, and measured on 2026-09-19
-  # the block spread the answer mass (p(yes|menu) 0.55 with it, 0.68 without, same statement).
-  raw: "<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be \"yes\" or \"no\".<|im_end|>\n<|im_start|>user\n<Instruct>: Judge whether the Document is a correct statement about, or the correct answer for, the Query.\n<Query>: {state}{question}<|im_end|>\n<|im_start|>assistant\n"
-  state_end: "\n"
+  state: '{state}'
+  state_end: '
+
+    '
+  raw: '<|im_start|>system
+
+    Judge whether the Document meets the requirements based on the Query and the Instruct provided. Note
+    that the answer can only be "yes" or "no".<|im_end|>
+
+    <|im_start|>user
+
+    <Instruct>: Judge whether the Document is a correct statement about, or the correct answer for, the
+    Query.
+
+    <Query>: {state}{question}<|im_end|>
+
+    <|im_start|>assistant
+
+    '
+  kwargs: {}
   questions:
-    # A yes/no reranker never emits identifier letters: score each option as the document.
+    choice: '<Document>: {instructions} The options are:
+
+      {options}
+
+      The correct option is the one with identifier'
+    option_line: '{identifier}. {key}{description}'
+    description_sep: ' - '
+    score: '<Document>: {instructions} The levels are:
+
+      {levels}
+
+      The applicable level is the one with identifier'
+    level_line: '{identifier}. {text}'
+    noul: '<Document>: {instructions}'
     choice_strategy: per_option
-    option_document: "<Document>: {instructions} The answer is: {key}{description}"
-    choice: "<Document>: {instructions} The options are:\n{options}\nThe correct option is the one with identifier"
-    option_line: "{identifier}. {key}{description}"
-    description_sep: " - "
-    score: "<Document>: {instructions} The levels are:\n{levels}\nThe applicable level is the one with identifier"
-    level_line: "{identifier}. {text}"
-    noul: "<Document>: {instructions}"
+    option_document: '<Document>: {instructions} The answer is: {key}{description}'
 answers:
   noul:
-    "true":
-      - { text: "yes" }
-      - { text: "Yes" }
-    "false":
-      - { text: "no" }
-      - { text: "No" }
+    'true':
+    - text: 'yes'
+      id: 9693
+    - text: 'Yes'
+      id: 9454
+    'false':
+    - text: 'no'
+      id: 2152
+    - text: 'No'
+      id: 2753
   identifiers:
-    - [{ text: " A" }, { text: "A" }]
-    - [{ text: " B" }, { text: "B" }]
-    - [{ text: " C" }, { text: "C" }]
-    - [{ text: " D" }, { text: "D" }]
-    - [{ text: " E" }, { text: "E" }]
-    - [{ text: " F" }, { text: "F" }]
-    - [{ text: " G" }, { text: "G" }]
-    - [{ text: " H" }, { text: "H" }]
+  - - text: ' A'
+      id: 362
+    - text: A
+      id: 32
+  - - text: ' B'
+      id: 425
+    - text: B
+      id: 33
+  - - text: ' C'
+      id: 356
+    - text: C
+      id: 34
+  - - text: ' D'
+      id: 422
+    - text: D
+      id: 35
+  - - text: ' E'
+      id: 468
+    - text: E
+      id: 36
+  - - text: ' F'
+      id: 434
+    - text: F
+      id: 37
+  - - text: ' G'
+      id: 479
+    - text: G
+      id: 38
+  - - text: ' H'
+      id: 472
+    - text: H
+      id: 39
 readout:
   rung: top_k
   top_k: 20
   permutation: none
+  permutation_calls: 1
+probe:
+  kind: endpoint
+  model: qwen3-vl-reranker-8b
+  dialect: llamacpp
+  backend_version: b10809-5266f24da7
+  max_context: 16384
+  modalities:
+  - text
+  rungs:
+  - top_k
+  - top_k_floor
+  top_k_cap: null
+  logprobs_post_bias: false
+  prefill_honored: null
+  template_kwargs_honored: null
+  token_ids_verified: true
+  answer_tokens:
+    'yes': 9693
+    'Yes': 9454
+    'no': 2152
+    'No': 2753
+    ' A': 362
+    A: 32
+    ' B': 425
+    B: 33
+    ' C': 356
+    C: 34
+    ' D': 422
+    D: 35
+    ' E': 468
+    E: 36
+    ' F': 434
+    F: 37
+    ' G': 479
+    G: 38
+    ' H': 472
+    H: 39
+  multi_token_answers: []
+  cache:
+    block_tokens: 1
+    first_ms: 34.62307999143377
+    second_ms: 13.728966005146503
+    cached_tokens: 948
+  fanout: null
+  probed_at: '2026-09-20T01:01:49+00:00'
+  notes: []
 provenance:
   author: Felipe Infante de Castro
-  created: "2026-09-19"
-  status: draft
-  launch: "llama-server -m ~/Work/models/Qwen3-VL-Reranker-8B.Q8_0.gguf --mmproj ~/Work/models/Qwen3-VL-Reranker-8B.mmproj-f16.gguf -c 32768 -ngl 99 --parallel 2 --port 8081 --cache-reuse 256 --slot-save-path ~/Work/runs/llama-slots"
+  created: '2026-09-19'
+  status: probed
+  launch: llama-server -m ~/Work/models/Qwen3-VL-Reranker-8B.Q8_0.gguf --mmproj ~/Work/models/Qwen3-VL-Reranker-8B.mmproj-f16.gguf
+    -c 32768 -ngl 99 --parallel 2 --port 8081 --cache-reuse 256 --slot-save-path ~/Work/runs/llama-slots
+  notes:
+  - 'A reranker driven as a causal model through its own template: the system line and the query (our
+    state) form the shared prefix; each question is the document; the trained yes/no readout answers it.'
+  - 'No empty think block: the Qwen3-VL base has no thinking mode, and measured 2026-09-19 the block spread
+    the answer mass (p(yes|menu) 0.55 with it, 0.68 without, same statement).'
+  - 'A yes/no reranker never emits identifier letters (none reached the top-20 live), so choice uses the
+    per_option strategy: each option is scored as the document.'
+  scorecards: []
