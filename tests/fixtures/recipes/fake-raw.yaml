@@ -1,0 +1,37 @@
+# Test recipe: an endpoint-served decoder in "raw" completions mode (a reranker-style template).
+schema_version: 1
+model:
+  name: fake-reranker
+  kind: endpoint
+endpoint:
+  base_url: http://fake/v1
+  dialect: llamacpp
+  timeout_s: 30
+template:
+  mode: raw
+  raw: "<|im_start|>system\nJudge the Document against the Query. Answer only yes or no.<|im_end|>\n<|im_start|>user\n<Query>: {state}{question}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+  state_end: "\n"
+  questions:
+    choice: "\n<Instruct>: {instructions}\n<Options>:\n{options}\n<Document>: the identifier of the best option"
+    option_line: "{identifier}. {key}{description}"
+    description_sep: " - "
+    score: "\n<Instruct>: {instructions}\n<Levels>:\n{levels}\n<Document>: the identifier of the applicable level"
+    level_line: "{identifier}. {text}"
+    noul: "\n<Instruct>: {instructions}\n<Document>: the statement holds"
+answers:
+  noul:
+    "true":
+      - { text: "yes", id: 9693 }
+    "false":
+      - { text: "no", id: 2152 }
+  identifiers:
+    - [{ text: "A", id: 32 }]
+    - [{ text: "B", id: 33 }]
+readout:
+  rung: auto
+  top_k: 10
+  permutation: none
+provenance:
+  author: tests
+  created: "2026-09-19"
+  status: draft

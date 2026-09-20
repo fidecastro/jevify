@@ -1,0 +1,44 @@
+# Test recipe: an endpoint-served decoder in chat "messages" mode, vLLM dialect.
+schema_version: 1
+model:
+  name: fake-decoder
+  kind: endpoint
+endpoint:
+  base_url: http://fake/v1
+  dialect: vllm
+  timeout_s: 30
+template:
+  mode: messages
+  system: "You answer typed questions about the state with a single token."
+  state: "State:\n{state}"
+  state_end: "\n\n"
+  kwargs:
+    thinking: false
+  questions:
+    choice: "Question: {instructions}\nOptions:\n{options}\nAnswer with the identifier of the best option."
+    option_line: "{identifier}. {key}{description}"
+    description_sep: ": "
+    score: "Question: {instructions}\nLevels:\n{levels}\nAnswer with the identifier of the level that applies."
+    level_line: "{identifier}. {text}"
+    noul: "Question: {instructions}\nAnswer yes or no."
+answers:
+  noul:
+    "true":
+      - { text: " yes", id: 14452 }
+      - { text: "yes", id: 16520 }
+    "false":
+      - { text: " no", id: 1119 }
+      - { text: "no", id: 3567 }
+  identifiers:
+    - [{ text: " A", id: 334 }]
+    - [{ text: " B", id: 406 }]
+    - [{ text: " C", id: 356 }]
+    - [{ text: " D", id: 423 }]
+readout:
+  rung: top_k
+  top_k: 20
+  permutation: none
+provenance:
+  author: tests
+  created: "2026-09-19"
+  status: draft
