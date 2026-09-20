@@ -93,6 +93,28 @@ Four frozen suites, every recipe on each, one run each, latencies per
 question on one machine on one day. Every row links to the scorecard that
 records the command, the recipe hash, the suite hash and the raw file digest.
 
+### Latency per question
+
+The median of each suite, combined across the suites a model ran; one run
+each. A question is one request that reads the answer off the next-token
+probabilities, after the state was sent once and cached.
+
+| Model | How it runs | Hardware | Latency per question |
+|---|---|---|---|
+| facebook/bart-large-mnli | in-process NLI classifier | RTX 4090 | 7–9 ms, avg 8 |
+| Qwen3-Embedding-0.6B | in-process embedding, cosine | RTX 4090 | 8–10 ms, avg 9 |
+| Gemma 4 E4B (Q8_0) | llama.cpp, chat | RTX 4090 | 28–37 ms, avg 32 |
+| Qwen3-VL-Reranker-2B (Q8_0) | llama.cpp, yes/no readout | RTX 4090 | 47–64 ms, avg 53 |
+| Qwen3-VL-Reranker-8B (Q8_0) | llama.cpp, yes/no readout | RTX 4090 | 68 ms (one suite) |
+| Ternary Bonsai 2 27B (PQ2_0) | llama.cpp (PrismML fork), raw prompt | RTX 4090 | 97–113 ms, avg 102 |
+| DeepSeek-V4-Flash | vLLM, chat | 2× DGX Spark, over LAN | 359–672 ms, avg 483 |
+
+Image questions cost the llama.cpp models nothing extra, since the frame is
+paid once in the warm; DeepSeek pays about half again on images. The two
+in-process models are the fastest and the least accurate.
+
+### Accuracy by suite
+
 **policy-29**, the diagnostic suite carried over from the author's earlier experiments (choice only):
 
 | Recipe | Kind | Accuracy | Median latency | Scorecard |
