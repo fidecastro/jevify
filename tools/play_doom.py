@@ -37,6 +37,11 @@ INSTRUCTIONS = {
     ),
 }
 OPTIONS = tuple(Option(b) for b in BUTTONS)
+SIDE_QUESTION = ChoiceQuestion(
+    id="side",
+    instructions="Where is the nearest monster relative to the centre of the view?",
+    options=(Option("left"), Option("centre"), Option("right"), Option("none")),
+)
 
 
 def srt_time(seconds: float) -> str:
@@ -44,7 +49,9 @@ def srt_time(seconds: float) -> str:
     return f"{ms // 3600000:02d}:{ms // 60000 % 60:02d}:{ms // 1000 % 60:02d},{ms % 1000:03d}"
 
 
-async def play(recipe_path: Path, seconds: int, seed: int, out_dir: Path, scenario: str) -> dict:
+async def play(
+    recipe_path: Path, seconds: int, seed: int, out_dir: Path, scenario: str, policy: str
+) -> dict:
     recipe = load_recipe(recipe_path)
     engine = build_engine(recipe)
     frames_dir = out_dir / "frames"
@@ -72,19 +79,24 @@ async def play(recipe_path: Path, seconds: int, seed: int, out_dir: Path, scenar
             )
         )
         t0 = time.perf_counter()
-        evaluation = await engine.ask(
-            jev_state,
-            [
-                ChoiceQuestion(
-                    id="button",
-                    instructions=INSTRUCTIONS.get(scenario, INSTRUCTIONS["deadly_corridor"]),
-                    options=OPTIONS,
-                )
-            ],
-        )
+        if policy == "perception":
+            # the model perceives, a fixed rule acts: face the nearest monster, then shoot
+            [answer] = (await engine.ask(jev_state, [SIDE_QUESTION])).answers
+            chosen = {
+                "left": "turn left",
+                "right": "turn right",
+                "centre": "attack",
+                "none": "turn right",
+            }[answer.selected]
+        else:
+            question = ChoiceQuestion(
+                id="button",
+                instructions=INSTRUCTIONS.get(scenario, INSTRUCTIONS["deadly_corridor"]),
+                options=OPTIONS,
+            )
+            [answer] = (await engine.ask(jev_state, [question])).answers
+            chosen = answer.selected
         latency = (time.perf_counter() - t0) * 1000
-        [answer] = evaluation.answers
-        chosen = answer.selected
         probs = answer.distribution.as_mapping()
         enemies = enemies_on_screen(state, frame.shape[1])
         trace.append(
@@ -92,7 +104,8 @@ async def play(recipe_path: Path, seconds: int, seed: int, out_dir: Path, scenar
                 "step": step,
                 "tic": state.tic,
                 "button": chosen,
-                "p": probs[chosen],
+                "answer": answer.selected,
+                "p": probs[answer.selected],
                 "latency_ms": latency,
                 "health": health,
                 "ammo": ammo,
@@ -109,6 +122,7 @@ async def play(recipe_path: Path, seconds: int, seed: int, out_dir: Path, scenar
     return {
         "recipe": str(recipe_path),
         "scenario": scenario,
+        "policy": policy,
         "seed": seed,
         "steps": len(trace),
         "game_seconds": len(trace) * TICS_PER_ACTION / 35,
@@ -134,7 +148,7 @@ def render_video(out_dir: Path, summary: dict, stem: str) -> Path:
         lines += [
             str(i + 1),
             f"{srt_time(i / fps)} --> {srt_time((i + 1) / fps)}",
-            f"{stem}  step {t['step']}  {t['button']} (p={t['p']:.2f}, {t['latency_ms']:.0f} ms)  "
+            f"{stem}  step {t['step']}  {t['answer']} -> {t['button']} (p={t['p']:.2f}, {t['latency_ms']:.0f} ms)  "
             f"health {t['health']:.0f}  kills {t['kills']:.0f}",
             "",
         ]
@@ -170,10 +184,18 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--runs-dir", type=Path, default=Path("runs"))
     ap.add_argument("--scenario", default="deadly_corridor")
+    ap.add_argument(
+        "--policy",
+        choices=["button", "perception"],
+        default="button",
+        help="button: the model picks the button; perception: it says where the monster is, a rule acts",
+    )
     args = ap.parse_args()
-    stem = f"{args.recipe.stem}--{args.scenario}"
+    stem = f"{args.recipe.stem}--{args.scenario}--{args.policy}"
     out_dir = args.runs_dir / f"doom-{stem}"
-    summary = asyncio.run(play(args.recipe, args.seconds, args.seed, out_dir, args.scenario))
+    summary = asyncio.run(
+        play(args.recipe, args.seconds, args.seed, out_dir, args.scenario, args.policy)
+    )
     (out_dir / "trace.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
     video = render_video(out_dir, summary, stem)
     print(
