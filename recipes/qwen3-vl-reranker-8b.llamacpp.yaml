@@ -29,6 +29,7 @@ template:
 
     '
   kwargs: {}
+  image_marker: <__media__>
   questions:
     choice: '<Document>: {instructions} The options are:
 
@@ -105,10 +106,12 @@ probe:
   modalities:
   - text
   rungs:
+  - grammar
   - top_k
+  - equal_bias
   - top_k_floor
   top_k_cap: null
-  logprobs_post_bias: false
+  logprobs_post_bias: true
   prefill_honored: null
   template_kwargs_honored: null
   token_ids_verified: true
@@ -136,11 +139,11 @@ probe:
   multi_token_answers: []
   cache:
     block_tokens: 1
-    first_ms: 34.62307999143377
-    second_ms: 13.728966005146503
+    first_ms: 34.430386003805324
+    second_ms: 13.650226988829672
     cached_tokens: 948
   fanout: null
-  probed_at: '2026-09-20T01:01:49+00:00'
+  probed_at: '2026-09-20T01:12:15+00:00'
   notes: []
 provenance:
   author: Felipe Infante de Castro

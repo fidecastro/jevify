@@ -43,14 +43,20 @@ class Behaviour:
     scores_when: list[tuple[str, dict[str, float]]] = field(default_factory=list)
     rate_limit_first: int = 0
     version: str = "0.99.0-fake"
+    grammar: bool = False  # llama.cpp only: honour a GBNF grammar with post-sampling probs
+    multimodal: bool = False  # accept image content parts / native multimodal_data
     # answer texts that tokenize to two tokens on this "model" (probe must catch them)
     multi_token_answers: set[str] = field(default_factory=set)
 
 
 class FakeTokenizer:
-    """Deterministic: known answer tokens get fixed ids, everything else a stable hash id."""
+    """Deterministic: known answer tokens get fixed ids, everything else a stable hash id.
 
-    KNOWN = {
+    One id table per dialect, mirroring reality: the vLLM fake speaks the DeepSeek
+    tokenizer's ids, the llama.cpp fake the Qwen tokenizer's ids.
+    """
+
+    KNOWN_VLLM = {
         " yes": 14452,
         "yes": 16520,
         " no": 1119,
@@ -59,13 +65,28 @@ class FakeTokenizer:
         " B": 406,
         " C": 356,
         " D": 423,
-        "A": 32,
-        "B": 33,
+        "A": 35,
+        "B": 36,
         " Yes": 11608,
         " No": 3011,
         THINK_OPEN: 99001,
         "</think>": 99002,
     }
+    KNOWN_LLAMACPP = {
+        "yes": 9693,
+        "no": 2152,
+        "Yes": 9454,
+        "No": 2753,
+        "A": 32,
+        "B": 33,
+        " A": 362,
+        " B": 425,
+        THINK_OPEN: 151667,
+        "</think>": 151668,
+    }
+
+    def __init__(self, dialect: str = "vllm") -> None:
+        self.KNOWN = self.KNOWN_LLAMACPP if dialect == "llamacpp" else self.KNOWN_VLLM
 
     def id_of(self, text: str) -> int:
         if text in self.KNOWN:
@@ -84,8 +105,9 @@ class FakeTokenizer:
 class FakeOpenAIServer:
     def __init__(self, behaviour: Behaviour | None = None) -> None:
         self.behaviour = behaviour or Behaviour()
-        self.tokenizer = FakeTokenizer()
+        self.tokenizer = FakeTokenizer(self.behaviour.dialect)
         self.requests: list[dict[str, Any]] = []
+        self.responses: list[dict[str, Any]] = []
         self.seen_blocks: set[tuple[int, ...]] = set()
         self._served = 0
         routes = [
@@ -98,6 +120,7 @@ class FakeOpenAIServer:
             routes.append(Route("/version", self.version, methods=["GET"]))
         if self.behaviour.dialect == "llamacpp":
             routes.append(Route("/props", self.props, methods=["GET"]))
+            routes.append(Route("/completion", self.native_completion, methods=["POST"]))
             routes.append(Route("/apply-template", self.apply_template, methods=["POST"]))
         self.app = Starlette(routes=routes)
 
@@ -115,14 +138,24 @@ class FakeOpenAIServer:
                     break
             for filler in FILLER_TOKENS:
                 logits.setdefault(filler, b.background_logit)
-        if b.logprobs_mode == "processed":
+        post = body.get("post_sampling_probs") or b.logprobs_mode == "processed"
+        if post:
             for key, bias in (body.get("logit_bias") or {}).items():
                 text = self._text_for_bias_key(key)
                 if text in logits:
                     logits[text] += float(bias)
+            if body.get("grammar") and b.grammar:
+                allowed = self._grammar_strings(body["grammar"])
+                logits = {t: v for t, v in logits.items() if any(a.startswith(t) for a in allowed)}
         peak = max(logits.values())
         total = sum(math.exp(v - peak) for v in logits.values())
         return {t: (v - peak) - math.log(total) for t, v in logits.items()}
+
+    @staticmethod
+    def _grammar_strings(grammar: str) -> list[str]:
+        import re as _re
+
+        return _re.findall(r'"([^"]+)"', grammar)
 
     def _text_for_bias_key(self, key: str) -> str:
         try:
@@ -144,8 +177,13 @@ class FakeOpenAIServer:
         else:
             chosen = ranked[: min(requested, b.top_k_cap)]
         entries = []
+        post = bool(body.get("post_sampling_probs"))
         for text, lp in chosen:
-            entry: dict[str, Any] = {"token": text, "logprob": lp, "bytes": list(text.encode())}
+            entry: dict[str, Any] = {"token": text, "bytes": list(text.encode())}
+            if post:
+                entry["prob"] = math.exp(lp)
+            else:
+                entry["logprob"] = lp
             if b.dialect == "llamacpp":
                 entry["id"] = self.tokenizer.id_of(text)
             if b.dialect == "vllm" and body.get("return_as_token_id"):
@@ -231,10 +269,8 @@ class FakeOpenAIServer:
         entries = self._entries(logprobs, body)
         sampled = max(logprobs.items(), key=lambda kv: kv[1])
         usage = self._cache_and_usage(prompt)
-        content_entry = {"token": sampled[0], "logprob": sampled[1], "top_logprobs": entries}
-        if self.behaviour.dialect == "llamacpp":
-            content_entry["id"] = self.tokenizer.id_of(sampled[0])
-        return JSONResponse(
+        content_entry = self._content_entry(sampled, entries, body)
+        return self._record(
             {
                 "id": "chatcmpl-fake",
                 "object": "chat.completion",
@@ -273,7 +309,25 @@ class FakeOpenAIServer:
         entries = self._entries(logprobs, body)
         sampled = max(logprobs.items(), key=lambda kv: kv[1])
         usage = self._cache_and_usage(prompt)
-        return JSONResponse(
+        if self.behaviour.dialect == "llamacpp":
+            # llama.cpp answers the completions route with the chat-style content list.
+            return self._record(
+                {
+                    "id": "cmpl-fake",
+                    "object": "text_completion",
+                    "model": body.get("model", "fake"),
+                    "choices": [
+                        {
+                            "index": 0,
+                            "text": sampled[0],
+                            "logprobs": {"content": [self._content_entry(sampled, entries, body)]},
+                            "finish_reason": "length",
+                        }
+                    ],
+                    "usage": usage,
+                }
+            )
+        return self._record(
             {
                 "id": "cmpl-fake",
                 "object": "text_completion",
@@ -293,6 +347,51 @@ class FakeOpenAIServer:
                     }
                 ],
                 "usage": usage,
+            }
+        )
+
+    def _content_entry(self, sampled, entries, body: dict[str, Any]) -> dict[str, Any]:
+        post = bool(body.get("post_sampling_probs"))
+        entry: dict[str, Any] = {"token": sampled[0]}
+        if post:
+            entry["prob"] = math.exp(sampled[1])
+            entry["top_probs"] = entries
+        else:
+            entry["logprob"] = sampled[1]
+            entry["top_logprobs"] = entries
+        if self.behaviour.dialect == "llamacpp":
+            entry["id"] = self.tokenizer.id_of(sampled[0])
+        return entry
+
+    def _record(self, payload: dict[str, Any]) -> JSONResponse:
+        self.responses.append(payload)
+        return JSONResponse(payload)
+
+    async def native_completion(self, request: Request) -> JSONResponse:
+        """llama.cpp's native route: string or {prompt_string, multimodal_data} prompt,
+        n_probs, completion_probabilities, top-level tokens_cached."""
+        body = await request.json()
+        if (gated := self._gate(body, "/completion")) is not None:
+            return gated
+        prompt = body["prompt"]
+        if isinstance(prompt, dict):
+            if not self.behaviour.multimodal:
+                return JSONResponse(
+                    {"error": {"message": "multimodal not supported"}}, status_code=400
+                )
+            prompt = prompt["prompt_string"]
+        body.setdefault("logprobs", body.get("n_probs", 0))
+        logprobs = self._distribution(prompt, body)
+        entries = self._entries(logprobs, body)
+        sampled = max(logprobs.items(), key=lambda kv: kv[1])
+        usage = self._cache_and_usage(prompt)
+        return self._record(
+            {
+                "content": sampled[0],
+                "tokens_predicted": 1,
+                "tokens_evaluated": usage["prompt_tokens"],
+                "tokens_cached": 0,
+                "completion_probabilities": [self._content_entry(sampled, entries, body)],
             }
         )
 

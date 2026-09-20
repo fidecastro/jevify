@@ -16,7 +16,12 @@ from typing import Any
 import yaml
 
 from jevify.adapters.endpoint.client import OpenAICompatibleClient
-from jevify.adapters.endpoint.dialects import base_request, parse_response
+from jevify.adapters.endpoint.dialects import (
+    base_request,
+    grammar_for,
+    neutral_samplers,
+    parse_response,
+)
 from jevify.adapters.endpoint.readout import matches, read_answer_set
 from jevify.domain.questions import NoulQuestion, State
 from jevify.ports.backend import (
@@ -85,6 +90,8 @@ class Prober:
         post_bias = await self._bias_visible(prefix, part, dialect, parsed.entries, answer_tokens)
         if post_bias:
             rungs.add(Rung.EQUAL_BIAS)
+        if dialect is Dialect.LLAMACPP and await self._grammar_honoured(prefix, part, dialect):
+            rungs.add(Rung.GRAMMAR)
         prefill = await self._prefill_honored(dialect) if prefix.mode == "messages" else None
         cache = await self._cache(state, dialect)
 
@@ -280,6 +287,8 @@ class Prober:
         else:
             body["logprobs"] = self.recipe.readout.top_k
         body["logit_bias"] = {str(ident): 50}
+        if dialect is Dialect.LLAMACPP:
+            neutral_samplers(body)
         try:
             response = await self.client.post_v1(path, body)
         except BackendError as exc:
@@ -290,6 +299,23 @@ class Prober:
             if (entry.id == ident) or (entry.id is None and entry.text == weakest.text):
                 return entry.logprob > weakest.logprob + 1.0
         return False
+
+    async def _grammar_honoured(self, prefix, part, dialect: Dialect) -> bool:
+        """Under a grammar over the answer spellings only those (or their prefixes) return."""
+        texts = list(dict.fromkeys(t.text for lbl in part.labels for t in part.tokens[lbl]))
+        path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
+        body["grammar"] = grammar_for(texts)
+        neutral_samplers(body)
+        body["logprobs"] = len(texts) + 4
+        try:
+            response = await self.client.post_v1(path, body)
+        except BackendError as exc:
+            self.notes.append(f"grammar rejected: {exc}")
+            return False
+        parsed = parse_response(path, response, dialect)
+        if not parsed.entries:
+            return False
+        return all(any(t.startswith(e.text) for t in texts) for e in parsed.entries)
 
     async def _prefill_honored(self, dialect: Dialect) -> bool | None:
         if not self.recipe.template.prefill:

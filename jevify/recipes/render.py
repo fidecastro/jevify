@@ -24,6 +24,7 @@ from jevify.domain.questions import (
     QuestionKind,
     ScoreQuestion,
     State,
+    TextPart,
 )
 from jevify.recipes.schema import Recipe, Token
 from jevify.recipes.store import RecipeError
@@ -94,7 +95,11 @@ def render_prefix(recipe: Recipe, state: State) -> RenderedPrefix:
     if template.mode == "raw":
         assert template.raw is not None  # validated by the schema
         head = template.raw[: template.raw.index(_QUESTION)]
-        text = _fill(head, state=state.text) + template.state_end
+        state_text = "".join(
+            part.text if isinstance(part, TextPart) else template.image_marker
+            for part in state.parts
+        )
+        text = _fill(head, state=state_text) + template.state_end
         return RenderedPrefix(mode="raw", text=text, images=images)
     text = _fill(template.state, state=state.text) + template.state_end
     return RenderedPrefix(

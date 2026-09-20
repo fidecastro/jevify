@@ -1,0 +1,58 @@
+{
+ "index": 0,
+ "content": "yes",
+ "tokens": [],
+ "id_slot": 1,
+ "stop": true,
+ "model": "/home/felix/Work/models/Qwen3-VL-Reranker-8B.Q8_0.gguf",
+ "tokens_predicted": 1,
+ "tokens_evaluated": 101,
+ "has_new_line": false,
+ "truncated": false,
+ "stop_type": "limit",
+ "stopping_word": "",
+ "tokens_cached": 101,
+ "completion_probabilities": [
+  {
+   "id": 9693,
+   "token": "yes",
+   "bytes": [
+    121,
+    101,
+    115
+   ],
+   "logprob": -2.1198694705963135,
+   "top_logprobs": [
+    {
+     "id": 9693,
+     "token": "yes",
+     "bytes": [
+      121,
+      101,
+      115
+     ],
+     "logprob": -2.1198694705963135
+    },
+    {
+     "id": 2152,
+     "token": "no",
+     "bytes": [
+      110,
+      111
+     ],
+     "logprob": -2.8151400089263916
+    },
+    {
+     "id": 14004,
+     "token": "YES",
+     "bytes": [
+      89,
+      69,
+      83
+     ],
+     "logprob": -4.618752479553223
+    }
+   ]
+  }
+ ]
+}

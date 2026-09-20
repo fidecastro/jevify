@@ -1,0 +1,86 @@
+{
+    "choices": [
+        {
+            "text": "yes",
+            "index": 0,
+            "logprobs": {
+                "content": [
+                    {
+                        "id": 9693,
+                        "token": "yes",
+                        "bytes": [
+                            121,
+                            101,
+                            115
+                        ],
+                        "prob": 0.6229171752929688,
+                        "top_probs": [
+                            {
+                                "id": 9693,
+                                "token": "yes",
+                                "bytes": [
+                                    121,
+                                    101,
+                                    115
+                                ],
+                                "prob": 0.6229171752929688
+                            },
+                            {
+                                "id": 2152,
+                                "token": "no",
+                                "bytes": [
+                                    110,
+                                    111
+                                ],
+                                "prob": 0.31079792976379395
+                            },
+                            {
+                                "id": 88,
+                                "token": "y",
+                                "bytes": [
+                                    121
+                                ],
+                                "prob": 0.02380208484828472
+                            },
+                            {
+                                "id": 9454,
+                                "token": "Yes",
+                                "bytes": [
+                                    89,
+                                    101,
+                                    115
+                                ],
+                                "prob": 0.014897358603775501
+                            }
+                        ]
+                    }
+                ]
+            },
+            "finish_reason": "length"
+        }
+    ],
+    "created": 1789866515,
+    "model": "/home/felix/Work/models/Qwen3-VL-Reranker-8B.Q8_0.gguf",
+    "system_fingerprint": "b10809-5266f24da7",
+    "object": "text_completion",
+    "usage": {
+        "completion_tokens": 1,
+        "prompt_tokens": 101,
+        "total_tokens": 102,
+        "prompt_tokens_details": {
+            "cached_tokens": 100
+        }
+    },
+    "id": "chatcmpl-YFwbUYUdJFh8Sp62fWT3JANuvUa43KF3",
+    "timings": {
+        "cache_n": 100,
+        "prompt_n": 1,
+        "prompt_ms": 29.802,
+        "prompt_per_token_ms": 29.802,
+        "prompt_per_second": 33.55479498020267,
+        "predicted_n": 1,
+        "predicted_ms": 0.001,
+        "predicted_per_token_ms": 0.0,
+        "predicted_per_second": 0.0
+    }
+}

@@ -11,7 +11,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from jevify.adapters.endpoint.dialects import Entry, Parsed
+from jevify.adapters.endpoint.dialects import Entry, Parsed, grammar_for, neutral_samplers
 from jevify.ports.backend import BackendError, Capabilities, Dialect, Rung
 from jevify.recipes.render import RenderedPart
 from jevify.recipes.schema import Token
@@ -118,7 +118,83 @@ class NamedTokenLogprobsRung:
         return readout
 
 
-RUNGS: dict[Rung, type[TopKRung] | type[NamedTokenLogprobsRung]] = {
+def _answer_texts(part: RenderedPart) -> list[str]:
+    return list(dict.fromkeys(t.text for lbl in part.labels for t in part.tokens[lbl]))
+
+
+def _answer_ids(part: RenderedPart) -> list[int]:
+    return sorted({t.id for lbl in part.labels for t in part.tokens[lbl] if t.id is not None})
+
+
+class GrammarRung:
+    """Rung 2: a grammar masks the vocabulary to the answer spellings and the server reports
+    post-sampling probabilities renormalized over the survivors (llama.cpp)."""
+
+    rung = Rung.GRAMMAR
+
+    @staticmethod
+    def available(capabilities: Capabilities | None) -> bool:
+        return bool(capabilities and Rung.GRAMMAR in capabilities.rungs)
+
+    @staticmethod
+    def shape(body: dict[str, Any], part: RenderedPart, top_k: int, dialect: Dialect) -> None:
+        texts = _answer_texts(part)
+        body["grammar"] = grammar_for(texts)
+        neutral_samplers(body)
+        n = max(top_k, len(texts) + 4)
+        body["n_probs" if "n_predict" in body else "logprobs"] = n
+        if "messages" in body:
+            body["top_logprobs"] = n
+
+    @staticmethod
+    def read(parsed: Parsed, part: RenderedPart) -> Readout:
+        readout = read_answer_set(parsed, part, full_softmax=False)
+        if readout.missing:
+            raise BackendError(
+                f"labels {list(readout.missing)} absent under the grammar; "
+                "the server may not honour grammar with post-sampling probabilities"
+            )
+        return readout
+
+
+class EqualBiasRung:
+    """Rung 4: the same bias on every answer token lifts them into the reported list without
+    changing their ratios (softmax is shift-invariant within the biased set)."""
+
+    rung = Rung.EQUAL_BIAS
+    BIAS = 50
+
+    @staticmethod
+    def available(capabilities: Capabilities | None) -> bool:
+        return bool(capabilities and Rung.EQUAL_BIAS in capabilities.rungs)
+
+    @staticmethod
+    def shape(body: dict[str, Any], part: RenderedPart, top_k: int, dialect: Dialect) -> None:
+        ids = _answer_ids(part)
+        keys = [str(i) for i in ids] if ids else _answer_texts(part)
+        body["logit_bias"] = {k: EqualBiasRung.BIAS for k in keys}
+        if dialect is Dialect.LLAMACPP:
+            neutral_samplers(body)
+        n = max(top_k, len(keys) + 4)
+        if "messages" in body:
+            body["top_logprobs"] = n
+        else:
+            body["n_probs" if "n_predict" in body else "logprobs"] = n
+
+    @staticmethod
+    def read(parsed: Parsed, part: RenderedPart) -> Readout:
+        readout = read_answer_set(parsed, part, full_softmax=False)
+        if readout.missing:
+            raise BackendError(
+                f"labels {list(readout.missing)} absent after equal bias; "
+                "the server may report logprobs before bias is applied"
+            )
+        return readout
+
+
+RUNGS: dict[Rung, Any] = {
     Rung.TOP_K: TopKRung,
     Rung.NAMED_TOKEN_LOGPROBS: NamedTokenLogprobsRung,
+    Rung.GRAMMAR: GrammarRung,
+    Rung.EQUAL_BIAS: EqualBiasRung,
 }

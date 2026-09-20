@@ -114,7 +114,8 @@ class EndpointBackend:
             )
             impl.shape(body, part, self.recipe.readout.top_k, self.dialect)
             started = self.clock()
-            response = await self.client.post_v1(path, body)
+            post = self.client.post_root if path == "completion" else self.client.post_v1
+            response = await post(path, body)
             latency_ms += (self.clock() - started) * 1000.0
             parsed = parse_response(path, response, self.dialect)
             readouts.append(impl.read(parsed, part))

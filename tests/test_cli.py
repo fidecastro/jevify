@@ -64,3 +64,47 @@ def test_version_prints_package_version() -> None:
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == f"jevify {jevify.__version__}"
+
+
+def test_ask_rung_override_and_image_flag(fixtures, fake_http_server_factory, tmp_path, capsys):
+    """`--rung` overrides the recipe's readout rung; `--image` adds an image part to the state."""
+    import base64
+
+    import yaml
+
+    from jevify.cli import main
+
+    live = fake_http_server_factory(
+        Behaviour(
+            dialect="llamacpp", grammar=True, multimodal=True, scores={"yes": 0.0, "no": -1.0}
+        )
+    )
+    doc = yaml.safe_load((fixtures / "recipes" / "fake-raw.yaml").read_text())
+    doc["endpoint"]["base_url"] = live.base_url
+    doc["readout"]["rung"] = "top_k"
+    recipe_path = tmp_path / "live-raw.yaml"
+    recipe_path.write_text(yaml.safe_dump(doc))
+    image = tmp_path / "square.png"
+    image.write_bytes(b"\x89PNG fake bytes")
+
+    code = main(
+        [
+            "ask",
+            str(recipe_path),
+            "--state",
+            "Screenshot of the checkout page.",
+            "--image",
+            str(image),
+            "--noul",
+            "red:The image is mostly red.",
+            "--rung",
+            "grammar",
+        ]
+    )
+    assert code == 0
+    body = json.loads(capsys.readouterr().out)
+    assert body["answers"]["red"]["x_jevify"]["rung"] == "grammar"
+    request = live.server.requests[-1]
+    assert request["path"] == "/completion"
+    assert request["multimodal_data"] == [base64.b64encode(b"\x89PNG fake bytes").decode()]
+    assert "grammar" in request and request["post_sampling_probs"] is True

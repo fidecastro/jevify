@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 import json
 import sys
 from collections.abc import Sequence
@@ -17,6 +18,7 @@ from jevify import __version__
 from jevify.api.translate import evaluation_to_jev, jev_extension
 from jevify.domain.questions import (
     ChoiceQuestion,
+    ImagePart,
     NoulQuestion,
     Option,
     Question,
@@ -67,6 +69,19 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         metavar="ID:STATEMENT",
         help="a noul question: probability that the statement holds; repeatable",
+    )
+    ask.add_argument(
+        "--image",
+        action="append",
+        default=[],
+        type=Path,
+        metavar="PATH",
+        help="an image file added to the state after the text; repeatable",
+    )
+    ask.add_argument(
+        "--rung",
+        choices=("named_token_logprobs", "grammar", "top_k", "equal_bias", "top_k_floor"),
+        help="override the recipe's readout rung for this call",
     )
     probe = commands.add_parser(
         "probe", help="measure a backend and write its capabilities into the recipe"
@@ -142,19 +157,40 @@ def _split_spec(spec: str, *, want_items: bool) -> tuple[str, str, list[str]]:
     return ident.strip(), instructions.strip(), parsed
 
 
+_IMAGE_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+}
+
+
 def parse_state(args: argparse.Namespace) -> State:
     if args.state_json is not None:
-        return State.from_jev(json.loads(args.state_json))
-    text = args.state
-    if text.startswith("@"):
-        text = Path(text[1:]).read_text(encoding="utf-8")
-    return State.from_jev(text)
+        state = State.from_jev(json.loads(args.state_json))
+    else:
+        text = args.state
+        if text.startswith("@"):
+            text = Path(text[1:]).read_text(encoding="utf-8")
+        state = State.from_jev(text)
+    images = []
+    for path in getattr(args, "image", []) or []:
+        mime = _IMAGE_TYPES.get(path.suffix.lower())
+        if mime is None:
+            raise UsageError(f"{path}: unsupported image type; use png, jpg or webp")
+        payload = base64.b64encode(path.read_bytes()).decode("ascii")
+        images.append(ImagePart(f"data:{mime};base64,{payload}"))
+    return State(state.parts + tuple(images)) if images else state
 
 
 def run_ask(args: argparse.Namespace) -> int:
     from jevify.compose import build_engine
 
     recipe = load_recipe(args.recipe)
+    if args.rung:
+        recipe = recipe.model_copy(
+            update={"readout": recipe.readout.model_copy(update={"rung": args.rung})}
+        )
     questions = parse_questions(args)
     state = parse_state(args)
     engine = build_engine(recipe)

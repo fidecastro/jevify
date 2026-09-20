@@ -64,6 +64,8 @@ class TemplateSpec(_Strict):
     raw: str | None = None
     kwargs: dict[str, Any] = Field(default_factory=dict)
     prefill: str | None = None
+    # raw mode only: the placeholder the server substitutes with each image, in order
+    image_marker: str = "<__media__>"
     questions: QuestionTemplates
 
     @model_validator(mode="after")
