@@ -11,8 +11,13 @@ from typing import Any
 
 from jevify.adapters.endpoint.adapter import EndpointBackend
 from jevify.adapters.endpoint.client import OpenAICompatibleClient
+from jevify.domain.engine import Engine
 from jevify.ports.backend import Backend, BackendError
 from jevify.recipes.schema import Recipe
+
+
+def build_engine(recipe: Recipe, *, http: Any | None = None) -> Engine:
+    return Engine(build_backend(recipe, http=http), recipe)
 
 
 def build_backend(recipe: Recipe, *, http: Any | None = None) -> Backend:

@@ -99,6 +99,8 @@ class RawAnswer:
     prompt_tokens: int | None = None
     cached_tokens: int | None = None
     missing: tuple[str, ...] = ()
+    calls: int = 1
+    composition: str = "single"
     raw: dict[str, Any] = field(default_factory=dict)
 
 
