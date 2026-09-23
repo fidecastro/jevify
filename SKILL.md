@@ -90,7 +90,10 @@ sequence-classification head; all three question types; semantics `readout`.
 ## Reading an answer
 
 Jev's fields come first (`choice`, `confidence`, `probabilities`; `score`,
-`legend`; `noul`). Everything jevify adds is under `x_jevify`:
+`legend`; `noul`). `confidence` is Jev's statistic, `(n × peak − 1) / (n − 1)`
+over the options or levels: 0 when uniform, 1 when certain, and the number
+TypeSafe's published thresholds refer to. Everything jevify adds is under
+`x_jevify`:
 
 | Field | Meaning |
 |---|---|

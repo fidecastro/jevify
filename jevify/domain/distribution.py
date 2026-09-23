@@ -6,7 +6,8 @@ that no other module defines `confidence`). The definitions match the
 score-semantics contract in docs/00-invariants.md §5:
 
 - a distribution is a softmax over the answer set, so it sums to one;
-- confidence for choice and score is one minus the normalized Shannon entropy;
+- confidence for choice and score is Jev's peak statistic, (n * peak - 1) / (n - 1):
+  0 for a uniform distribution, 1 for a certain one (TypeSafe's published definition);
 - confidence for noul is the distance of P(true) from one half, scaled to [0, 1];
 - the score expectation is the probability-weighted level index.
 
@@ -81,11 +82,11 @@ class Distribution:
         """A statistic of this distribution, never an estimate that the decision is right."""
         if kind == "noul":
             return min(1.0, max(0.0, abs(self.probabilities[-1] - 0.5) * 2.0))
-        k = len(self.probabilities)
-        if k < 2:
+        n = len(self.probabilities)
+        if n < 2:
             return 1.0
-        entropy = -sum(p * math.log(p) for p in self.probabilities if p > 0.0)
-        return min(1.0, max(0.0, 1.0 - entropy / math.log(k)))
+        peak = max(self.probabilities)
+        return min(1.0, max(0.0, (n * peak - 1.0) / (n - 1.0)))
 
     def expectation(self) -> float:
         """Probability-weighted level index: the Jev `score` value."""

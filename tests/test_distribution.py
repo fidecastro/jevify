@@ -36,19 +36,24 @@ def test_label_mass_sums_over_token_set() -> None:
     assert d.probabilities[1] == pytest.approx(1 / 9)
 
 
-def test_choice_confidence_is_one_minus_normalized_entropy() -> None:
+def test_choice_confidence_is_jevs_peak_statistic() -> None:
+    """Jev: confidence = (n * peak - 1) / (n - 1); 0 when uniform, 1 when certain."""
     assert Distribution(("a", "b"), (0.5, 0.5)).confidence("choice") == pytest.approx(0.0)
     assert Distribution(("a", "b"), (1.0, 0.0)).confidence("choice") == pytest.approx(1.0)
     uniform4 = Distribution(("a", "b", "c", "d"), (0.25,) * 4)
     assert uniform4.confidence("choice") == pytest.approx(0.0)
-    # H([0.9, 0.1]) = 0.32508 nats; / ln 2 = 0.46899; 1 - that = 0.53101
+    # TypeSafe's worked example: [0.90, 0.06, 0.04] -> (3 * 0.90 - 1) / 2 = 0.85
+    documented = Distribution(("a", "b", "c"), (0.90, 0.06, 0.04))
+    assert documented.confidence("choice") == pytest.approx(0.85)
+    # Two options: (2 * 0.9 - 1) / 1 = 0.8
     skewed = Distribution(("a", "b"), (0.9, 0.1))
-    assert skewed.confidence("choice") == pytest.approx(0.5310, abs=1e-3)
+    assert skewed.confidence("choice") == pytest.approx(0.8)
 
 
 def test_score_confidence_uses_the_same_definition_as_choice() -> None:
     d = Distribution(("0", "1", "2"), (0.05, 0.86, 0.09))
     assert d.confidence("score") == pytest.approx(d.confidence("choice"))
+    assert d.confidence("score") == pytest.approx((3 * 0.86 - 1) / 2)
 
 
 def test_noul_confidence_is_distance_from_half() -> None:

@@ -1,6 +1,7 @@
 # ADR-0003 — Jev's evaluate call is the API; extensions are namespaced; the SDK is the acceptance test
 
-- **Status:** accepted (2026-09-19).
+- **Status:** accepted (2026-09-19); D8 added 2026-09-23: `confidence` is
+  Jev's peak statistic, amending `docs/00-invariants.md` §5.
 - **Extends:** ADR-0001 D2. Implements INV-8; constrained by INV-4, INV-9.
 
 ## Context
@@ -77,6 +78,31 @@ implementation, and a structure guard forbids it from touching the port.
 The library is the product; the server is one caller of it, and a program
 that imports jevify gets identical behaviour without HTTP.
 
+### D8 — `confidence` is Jev's statistic, computed Jev's way
+
+Jev's `confidence` on a `choice` or `score` answer is
+`(n × peak − 1) / (n − 1)`, where `n` is the number of options or levels and
+`peak` is the largest probability: 0 for a uniform distribution, 1 for a
+certain one. This is TypeSafe's published definition
+(<https://docs.typesafe.ai/confidence>, worked example
+`[0.90, 0.06, 0.04] → 0.85`), and it is what the thresholds TypeSafe
+recommends to clients (act above 0.9, review between 0.5 and 0.9, route to
+a human below 0.5) are calibrated against. Jev's `noul` answers carry no
+confidence.
+
+jevify computes exactly this in the one statistics chokepoint
+(`jevify/domain/distribution.py`) and nowhere else. Until 2026-09-23 it
+served one minus the normalized entropy under Jev's field name, which is
+systematically lower (`[0.90, 0.06, 0.04]` gave 0.64) and would have moved
+a client's threshold decisions; a reader of the NVIDIA forum thread caught
+it. For `noul`, jevify keeps its own statistic (distance of P(true) from one
+half, scaled to [0, 1]) under `x_jevify.confidence`, never on Jev's field.
+
+Scorecards under `docs/evidence/` whose `run_at` precedes 2026-09-23 record
+the entropy statistic in their wrong-case column; the reliability table bins
+on the top probability and is unaffected. They are not rewritten, because a
+number in a document comes from a run.
+
 ## Consequences
 
 - Compatibility is tested, not asserted. A client written for Jev runs
@@ -84,8 +110,9 @@ that imports jevify gets identical behaviour without HTTP.
 - The `x_jevify` namespace grows without ever touching Jev's fields.
 - The explicit ingest introduces server-side state and its expiry; the
   stateless route remains the default and the ingest is opt-in.
-- Jev's `confidence` is served with Jev's meaning, a statistic of the
-  distribution, and the claims contract forbids describing it otherwise.
+- Jev's `confidence` is served with Jev's meaning and Jev's formula (D8), a
+  statistic of the distribution, and the claims contract forbids describing
+  it otherwise.
 
 ## Rejected alternatives
 
