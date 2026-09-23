@@ -126,7 +126,7 @@ API response may claim more than it permits.
 
 Rules that follow:
 
-- **Confidence** is a statistic of the returned distribution: one minus its normalized entropy for choice and score, distance from one half for noul. It is not an independent estimate that the decision is right, and copy may not describe it as one.
+- **Confidence** is Jev's statistic of the returned distribution: `(n × peak − 1) / (n − 1)` over the n options or levels for choice and score, so a uniform distribution scores 0 and a certain one scores 1 (TypeSafe's published definition). Jev's noul answers carry no confidence; jevify reports the distance of P(true) from one half, scaled to [0, 1], under `x_jevify` only. It is not an independent estimate that the decision is right, and copy may not describe it as one.
 - **"Faster"** may be claimed only against a measured direct call on the same backend, same model, same state, with the measurement in a scorecard.
 - **"Accuracy"** names its suite and the suite's hash. A suite whose expected answers came from a teacher model measures agreement with that teacher, and copy says so.
 - **A fine-tuned result is never compared with a zero-shot result in one table** without the words fine-tuned and zero-shot in the row.
@@ -150,6 +150,7 @@ number and the previous wording. The edit and the ADR land in the same commit.
 | Date | Invariant | ADR | Change |
 |---|---|---|---|
 | 2026-09-19 | all | ADR-0001 | Adopted. |
+| 2026-09-23 | §5, confidence rule | ADR-0003 D8 | Confidence is Jev's peak statistic, `(n × peak − 1) / (n − 1)`. Previous wording: "a statistic of the returned distribution: one minus its normalized entropy for choice and score, distance from one half for noul". The entropy statistic disagreed with Jev's published definition, so the SDK-facing `confidence` field did not carry Jev's meaning. |
 
 ## 8. Document map
 
