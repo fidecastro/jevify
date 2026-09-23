@@ -51,6 +51,20 @@ jevify ask recipes/gemma-4-e4b-it.llamacpp.yaml \
 jevify serve recipes/gemma-4-e4b-it.llamacpp.yaml --port 8600
 ```
 
+Any model behind vLLM or llama.cpp works, not only the ones under
+`recipes/`: copy the nearest recipe, set `endpoint.base_url` and
+`model.name`, and run the probe, which re-verifies the answer token ids for
+that model and writes what it found into the file.
+
+`serve` binds to `127.0.0.1`. To reach it from other machines pass
+`--host 0.0.0.0`, and set `JEVIFY_API_KEY` first so that every request must
+carry that bearer key; to leave it running, detach it and keep its log:
+
+```sh
+jevify serve recipes/<name>.yaml --host 0.0.0.0 --port 8600 > ~/jevify.log 2>&1 &
+curl -s http://<this-host>:8600/health
+```
+
 Every answer carries Jev's fields (`choice`, `confidence`, `probabilities`,
 `score`, `legend`, `noul`) plus an `x_jevify` block naming the readout method,
 the cached tokens, the latency and the recipe hash that produced it.
