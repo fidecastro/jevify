@@ -8,6 +8,7 @@ import math
 import httpx
 import pytest
 
+from jevify.adapters.endpoint.readout import MissingLabelsError
 from jevify.compose import build_backend
 from jevify.domain.distribution import Distribution
 from jevify.domain.questions import ChoiceQuestion, NoulQuestion, Option, State
@@ -189,3 +190,53 @@ def test_per_option_choice_composes_yes_no_readouts(fixtures, fake_server_factor
     assert d.as_mapping()["billing"] == pytest.approx(math.exp(4) / (1 + math.exp(4)))
     assert answer.off_menu_mass is None
     assert answer.rung == "top_k"
+
+
+def _with_endpoint(recipe, **update):
+    return recipe.model_copy(update={"endpoint": recipe.endpoint.model_copy(update=update)})
+
+
+OLLAMA_LIKE = Behaviour(
+    scores={" yes": 0.0, " no": -1.0},
+    dialect="generic",
+    thinking_kwarg=None,
+    thinking_off_field=("reasoning_effort", "none"),
+)
+
+
+def test_generic_dialect_cannot_turn_thinking_off_without_extra_body(fixtures, fake_server_factory):
+    # The failure this field exists for: template arguments never reach a generic
+    # server, so a thinking model's one-token readout is its first thinking token.
+    server, http = fake_server_factory(OLLAMA_LIKE)
+    recipe = load_recipe(fixtures / "recipes" / "fake-vllm.yaml")
+    backend = build_backend(_with_endpoint(recipe, dialect="generic"), http=http)
+
+    with pytest.raises(MissingLabelsError):
+        run(backend.evaluate(run(backend.warm(STATE)), [NoulQuestion(id="q", instructions="x")]))
+
+
+def test_extra_body_reaches_every_request_on_the_generic_dialect(fixtures, fake_server_factory):
+    server, http = fake_server_factory(OLLAMA_LIKE)
+    recipe = load_recipe(fixtures / "recipes" / "fake-vllm.yaml")
+    recipe = _with_endpoint(recipe, dialect="generic", extra_body={"reasoning_effort": "none"})
+    backend = build_backend(recipe, http=http)
+
+    [answer] = run(
+        backend.evaluate(run(backend.warm(STATE)), [NoulQuestion(id="q", instructions="x")])
+    )
+
+    assert Distribution.from_logprobs(answer.logprobs).labels == ("false", "true")
+    assert len(server.requests) == 2  # warm and question
+    assert all(req["reasoning_effort"] == "none" for req in server.requests)
+    assert all("chat_template_kwargs" not in req for req in server.requests)
+
+
+def test_extra_body_cannot_override_a_readout_field(fixtures, fake_server_factory):
+    server, http = fake_server_factory(Behaviour(scores={" yes": 0.0, " no": -1.0}))
+    recipe = load_recipe(fixtures / "recipes" / "fake-vllm.yaml")
+    recipe = _with_endpoint(recipe, extra_body={"max_tokens": 64})
+    backend = build_backend(recipe, http=http)
+
+    with pytest.raises(BackendError, match="max_tokens"):
+        run(backend.warm(STATE))
+    assert server.requests == []  # refused before anything was sent

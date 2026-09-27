@@ -37,6 +37,7 @@ def build_backend(recipe: Recipe, *, http: Any | None = None) -> Backend:
             recipe.endpoint.base_url,
             api_key=api_key,
             timeout_s=recipe.endpoint.timeout_s,
+            extra_body=recipe.endpoint.extra_body,
             http=http,
         )
         return EndpointBackend(client, recipe)
@@ -51,6 +52,7 @@ def build_backend(recipe: Recipe, *, http: Any | None = None) -> Backend:
             recipe.endpoint.base_url,
             api_key=api_key,
             timeout_s=recipe.endpoint.timeout_s,
+            extra_body=recipe.endpoint.extra_body,
             http=http,
         )
         return RerankBackend(client, recipe)
@@ -66,6 +68,7 @@ def build_backend(recipe: Recipe, *, http: Any | None = None) -> Backend:
                 recipe.endpoint.base_url,
                 api_key=api_key,
                 timeout_s=recipe.endpoint.timeout_s,
+                extra_body=recipe.endpoint.extra_body,
                 http=http,
             )
             from jevify.adapters.embedding.adapter import EndpointEmbedder

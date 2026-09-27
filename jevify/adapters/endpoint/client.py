@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import random
 import re
+from collections.abc import Mapping
 from typing import Any
 
 import httpx
@@ -28,6 +29,7 @@ class OpenAICompatibleClient:
         timeout_s: float = 120.0,
         http: httpx.AsyncClient | None = None,
         max_retries: int = 3,
+        extra_body: Mapping[str, Any] | None = None,
     ) -> None:
         stripped = base_url.rstrip("/")
         self.root = stripped[: -len("/v1")] if stripped.endswith("/v1") else stripped
@@ -35,6 +37,7 @@ class OpenAICompatibleClient:
         self.api_key = api_key
         self.timeout_s = timeout_s
         self.max_retries = max_retries
+        self.extra_body = dict(extra_body or {})
         self._http = http or httpx.AsyncClient(timeout=httpx.Timeout(timeout_s))
 
     def _headers(self) -> dict[str, str]:
@@ -44,6 +47,8 @@ class OpenAICompatibleClient:
         return headers
 
     async def _request(self, method: str, url: str, body: dict[str, Any] | None = None) -> Any:
+        if body is not None and self.extra_body:
+            body = _merge_extra(body, self.extra_body)
         attempt = 0
         while True:
             try:
@@ -74,6 +79,16 @@ class OpenAICompatibleClient:
 
     async def aclose(self) -> None:
         await self._http.aclose()
+
+
+def _merge_extra(body: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
+    """Add the recipe's extra fields; never let one replace a field the readout set."""
+    clash = sorted(set(body) & set(extra))
+    if clash:
+        raise BackendError(
+            f"endpoint.extra_body may not set {', '.join(clash)}: jevify sets it for the readout"
+        )
+    return {**body, **extra}
 
 
 def _retry_delay(response: httpx.Response, attempt: int) -> float:

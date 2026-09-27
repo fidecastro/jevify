@@ -53,12 +53,18 @@ Every recipe has `schema_version: 1`, `model: {name, kind, revision}` and
 the rest.
 
 **`endpoint`** (any OpenAI-compatible server): `endpoint: {base_url,
-api_key_env, dialect: auto|vllm|llamacpp|generic, timeout_s}`, `template`
-and `answers`.
+api_key_env, dialect: auto|vllm|llamacpp|generic, timeout_s, extra_body}`,
+`template` and `answers`.
 - `template.mode: messages` sends chat messages; put thinking off in
   `template.kwargs` (`{thinking: false}` for DeepSeek, `{enable_thinking:
   false}` for Qwen3-class models; names are model-specific, the probe checks
   that no `<think>` token opens the answer).
+- `endpoint.extra_body` is merged into the top level of every request, for
+  servers that take a switch there rather than as a template argument. The
+  `generic` dialect sends no template arguments, so on Ollama's `/v1` route
+  a thinking model needs `extra_body: {reasoning_effort: none}` (`think:
+  false` is ignored there). A key jevify already sets for the readout
+  (`max_tokens`, `logprobs`, ...) is refused, not overridden.
 - `template.mode: raw` sends a completion prompt you write with the model's
   own control tokens; use it when the chat template would not put the model
   in its trained regime (the Qwen3-VL reranker recipe is the example).

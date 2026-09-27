@@ -181,3 +181,28 @@ def test_render_identifier_choice_is_a_single_part() -> None:
     assert rendered.composition == "single"
     assert len(rendered.parts) == 1
     assert rendered.parts[0].labels == ("x", "y")
+
+
+def test_extra_body_is_part_of_the_recipe_and_its_hash(tmp_path: Path) -> None:
+    doc = yaml.safe_load((FIXTURES / "fake-vllm.yaml").read_text())
+    plain = tmp_path / "plain.yaml"
+    plain.write_text(yaml.safe_dump(doc))
+    doc["endpoint"]["extra_body"] = {"reasoning_effort": "none"}
+    extra = tmp_path / "extra.yaml"
+    extra.write_text(yaml.safe_dump(doc))
+
+    assert load_recipe(plain).endpoint.extra_body == {}
+    assert load_recipe(extra).endpoint.extra_body == {"reasoning_effort": "none"}
+    assert recipe_hash(load_recipe(plain)) != recipe_hash(load_recipe(extra))
+
+
+def test_a_recipe_without_extra_body_keeps_the_hash_it_had_before_the_field_existed() -> None:
+    # Scorecards cite recipe hashes; a new optional field must not re-hash old recipes.
+    # Literals recorded on the parent commit, before `endpoint.extra_body` was added.
+    shipped = Path(__file__).parent.parent / "recipes" / "gemma-4-e4b-it.llamacpp.yaml"
+    assert recipe_hash(load_recipe(FIXTURES / "fake-vllm.yaml")) == (
+        "134663112a13f27e6869011075c4eb14dabd9bb8fa8321a883731f42db0bde0e"
+    )
+    assert recipe_hash(load_recipe(shipped)) == (
+        "22181ad02a27f7c7958d40132340cef25e7e9b0c1d32a068b330745a16054bad"
+    )
