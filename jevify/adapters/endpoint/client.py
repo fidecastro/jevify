@@ -18,6 +18,55 @@ _CONTEXT_LIMIT = re.compile(
 )
 
 
+# Every top-level request field jevify itself sets: the readout requests of every dialect
+# and rung, the probe's measurements, the tokenize and template routes, and the rerank and
+# embeddings bodies. `endpoint.extra_body` may not name one of these; the client refuses
+# when it is built, before any request, so probe, ask, eval and serve all fail the same way.
+# Guarded by tests/guards/test_request_fields.py, which records every field the adapters
+# send to the fakes and fails naming any that is missing here.
+RESERVED_REQUEST_FIELDS: frozenset[str] = frozenset(
+    {
+        # the readout request (dialects.base_request) and prefill
+        "model",
+        "messages",
+        "prompt",
+        "max_tokens",
+        "n_predict",
+        "temperature",
+        "stream",
+        "logprobs",
+        "continue_final_message",
+        "add_generation_prompt",
+        "chat_template_kwargs",
+        # the rungs and the probe
+        "top_logprobs",
+        "logprob_token_ids",
+        "return_as_token_id",
+        "logit_bias",
+        "grammar",
+        "n_probs",
+        # llama.cpp neutral samplers and slot pinning
+        "top_k",
+        "top_p",
+        "min_p",
+        "post_sampling_probs",
+        "id_slot",
+        # tokenize and apply-template
+        "content",
+        "add_special",
+        "parse_special",
+        "add_special_tokens",
+        "return_token_strs",
+        # rerank and embeddings
+        "query",
+        "documents",
+        "top_n",
+        "instruction",
+        "input",
+    }
+)
+
+
 class OpenAICompatibleClient:
     """HTTP access to one server. `v1/*` for the OpenAI surface, root for server extras."""
 
@@ -38,6 +87,7 @@ class OpenAICompatibleClient:
         self.timeout_s = timeout_s
         self.max_retries = max_retries
         self.extra_body = dict(extra_body or {})
+        _refuse_reserved(set(self.extra_body) & RESERVED_REQUEST_FIELDS)
         self._http = http or httpx.AsyncClient(timeout=httpx.Timeout(timeout_s))
 
     def _headers(self) -> dict[str, str]:
@@ -81,13 +131,18 @@ class OpenAICompatibleClient:
         await self._http.aclose()
 
 
-def _merge_extra(body: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
-    """Add the recipe's extra fields; never let one replace a field the readout set."""
-    clash = sorted(set(body) & set(extra))
+def _refuse_reserved(clash: set[str]) -> None:
     if clash:
         raise BackendError(
-            f"endpoint.extra_body may not set {', '.join(clash)}: jevify sets it for the readout"
+            f"endpoint.extra_body may not set {', '.join(sorted(clash))}: jevify sets it"
         )
+
+
+def _merge_extra(body: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
+    """Add the recipe's extra fields; never let one replace a field jevify set. The registry
+    check at construction is the rule; this per-request check is the backstop for a field
+    the registry does not know yet."""
+    _refuse_reserved(set(body) & set(extra))
     return {**body, **extra}
 
 
