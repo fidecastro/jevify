@@ -125,6 +125,8 @@ class FakeOpenAIServer:
         self.behaviour = behaviour or Behaviour()
         self.tokenizer = FakeTokenizer(self.behaviour.dialect)
         self.requests: list[dict[str, Any]] = []
+        # tokenize and apply-template bodies, kept apart so request counts stay scoring-only
+        self.template_requests: list[dict[str, Any]] = []
         self.responses: list[dict[str, Any]] = []
         self.in_flight = 0
         self.max_in_flight = 0
@@ -555,6 +557,7 @@ class FakeOpenAIServer:
         if not self.behaviour.supports_tokenize:
             return JSONResponse({"detail": "Not Found"}, status_code=404)
         body = await request.json()
+        self.template_requests.append({"path": "/tokenize", **body})
         if self.behaviour.dialect == "llamacpp":
             ids = self.tokenizer.encode(body["content"])
             if body["content"] in self.behaviour.multi_token_answers:
@@ -590,4 +593,5 @@ class FakeOpenAIServer:
 
     async def apply_template(self, request: Request) -> JSONResponse:
         body = await request.json()
+        self.template_requests.append({"path": "/apply-template", **body})
         return JSONResponse({"prompt": self._rendered_chat(body)})

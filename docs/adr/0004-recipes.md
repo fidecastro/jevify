@@ -32,7 +32,7 @@ hash is the recipe's identity in every answer and every scorecard.
 | Section | Holds |
 |---|---|
 | `model` | Identifier as the backend knows it, revision when known, the adapter kind, and for endpoints the dialect the probe detected. |
-| `endpoint` | For endpoint-backed kinds: base URL, the environment variable holding an API key, the dialect, the timeout, and `extra_body`, server-specific fields merged into the top level of every request (never replacing a field the readout sets; omitted from the hash when empty, so older recipes keep theirs). |
+| `endpoint` | For endpoint-backed kinds: base URL, the environment variable holding an API key, the dialect, the timeout, and `extra_body`, server-specific fields merged into the top level of every request (a field jevify itself sets is refused when the backend is built, from one registry in the endpoint client; omitted from the hash when empty, so older recipes keep theirs). |
 | `template` | For endpoints: how state, instructions and options are rendered into messages or a raw prompt; where the question goes; the answer-slot suffix; template arguments such as thinking off; whether assistant prefill is used. For encoders: the sequence layout and marker scheme. |
 | `answers` | The answer tokens for `noul`, the identifier scheme for `choice`, the level tokens for `score`, each with the token ids the probe verified. |
 | `readout` | The rung of the ladder to use or `auto`; the permutation policy and call count for `choice`. |

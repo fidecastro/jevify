@@ -63,8 +63,10 @@ api_key_env, dialect: auto|vllm|llamacpp|generic, timeout_s, extra_body}`,
   servers that take a switch there rather than as a template argument. The
   `generic` dialect sends no template arguments, so on Ollama's `/v1` route
   a thinking model needs `extra_body: {reasoning_effort: none}` (`think:
-  false` is ignored there). A key jevify already sets for the readout
-  (`max_tokens`, `logprobs`, ...) is refused, not overridden.
+  false` is ignored there). A key jevify itself sets (`max_tokens`,
+  `logprobs`, `logit_bias`, ...) is refused when the backend is built, before
+  any request, so probe, ask, eval and serve all fail the same way. The
+  fields also reach the tokenize and template routes the probe uses.
 - `template.mode: raw` sends a completion prompt you write with the model's
   own control tokens; use it when the chat template would not put the model
   in its trained regime (the Qwen3-VL reranker recipe is the example).

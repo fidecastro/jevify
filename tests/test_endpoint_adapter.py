@@ -231,12 +231,22 @@ def test_extra_body_reaches_every_request_on_the_generic_dialect(fixtures, fake_
     assert all("chat_template_kwargs" not in req for req in server.requests)
 
 
-def test_extra_body_cannot_override_a_readout_field(fixtures, fake_server_factory):
+@pytest.mark.parametrize(
+    "key",
+    [
+        "max_tokens",  # set on every readout request
+        "logit_bias",  # set only by the equal-bias rung and the probe: warm would have passed
+    ],
+)
+def test_extra_body_naming_a_field_jevify_sets_is_refused_before_any_request(
+    fixtures, fake_server_factory, key
+):
+    # The refusal is decided from the recipe alone, so it is the same for probe, ask, eval and
+    # serve, rather than surfacing on whichever request happens to set the key first.
     server, http = fake_server_factory(Behaviour(scores={" yes": 0.0, " no": -1.0}))
     recipe = load_recipe(fixtures / "recipes" / "fake-vllm.yaml")
-    recipe = _with_endpoint(recipe, extra_body={"max_tokens": 64})
-    backend = build_backend(recipe, http=http)
+    recipe = _with_endpoint(recipe, extra_body={key: 64})
 
-    with pytest.raises(BackendError, match="max_tokens"):
-        run(backend.warm(STATE))
+    with pytest.raises(BackendError, match=key):
+        build_backend(recipe, http=http)
     assert server.requests == []  # refused before anything was sent
