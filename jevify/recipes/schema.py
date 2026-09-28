@@ -32,6 +32,10 @@ class EndpointSpec(_Strict):
     api_key_env: str | None = None
     dialect: Dialect = "auto"
     timeout_s: float = Field(default=120.0, gt=0)
+    # Server-specific request fields sent at the top level of every request, e.g.
+    # Ollama's `reasoning_effort: "none"`, the only way its /v1 route turns thinking
+    # off. Left out of the dump when empty so recipes that predate it keep their hash.
+    extra_body: dict[str, Any] = Field(default_factory=dict, exclude_if=lambda v: not v)
 
 
 class QuestionTemplates(_Strict):

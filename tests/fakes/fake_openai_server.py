@@ -34,6 +34,9 @@ class Behaviour:
     supports_tokenize: bool = True
     thinking_kwarg: str | None = "thinking"
     thinking_default_on: bool = True
+    # a top-level request field that turns thinking off, as Ollama's /v1 route takes
+    # `reasoning_effort: "none"` and ignores template arguments
+    thinking_off_field: tuple[str, Any] | None = None
     # how the template spells "thinking off": nothing, or a closed empty block (Qwen3.5)
     thinking_off_style: str = "omit"
     cache_tail_tokens: int = 0  # trailing prompt tokens never reported cached (llama.cpp)
@@ -226,6 +229,9 @@ class FakeOpenAIServer:
         kwargs = body.get("chat_template_kwargs") or {}
         thinking_on = self.behaviour.thinking_default_on
         if self.behaviour.thinking_kwarg and kwargs.get(self.behaviour.thinking_kwarg) is False:
+            thinking_on = False
+        off_field = self.behaviour.thinking_off_field
+        if off_field and body.get(off_field[0]) == off_field[1]:
             thinking_on = False
         last = body["messages"][-1]
         if last["role"] == "assistant" and body.get("continue_final_message"):
