@@ -36,6 +36,11 @@ class EndpointSpec(_Strict):
     # Ollama's `reasoning_effort: "none"`, the only way its /v1 route turns thinking
     # off. Left out of the dump when empty so recipes that predate it keep their hash.
     extra_body: dict[str, Any] = Field(default_factory=dict, exclude_if=lambda v: not v)
+    # Static headers sent on every request, e.g. a router's required client/product id.
+    # May not set Content-Type or Authorization (api_key_env is the only way to set
+    # Authorization); the client refuses at construction. Left out of the dump when empty
+    # so recipes that predate it keep their hash.
+    headers: dict[str, str] = Field(default_factory=dict, exclude_if=lambda v: not v)
 
 
 class QuestionTemplates(_Strict):
