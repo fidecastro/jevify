@@ -42,6 +42,7 @@ RESERVED_REQUEST_FIELDS: frozenset[str] = frozenset(
         "top_logprobs",
         "logprob_token_ids",
         "return_as_token_id",
+        "prompt_logprobs",
         "logit_bias",
         "grammar",
         "n_probs",

@@ -1,13 +1,18 @@
 """The readout ladder (ADR-0002 D4): how a distribution over the answer set is obtained.
 
 Each rung knows whether it is available under a capability list, how to
-shape the request, and how to read the answer tokens out of the response.
-The token match is id-first, text second (ADR-0002 D2, plan decision 4).
+shape the request, how to collect the answer slot's entries (one request, or
+more for a rung that needs them), and how to read the answer tokens out of
+them. Rungs never touch the transport: the adapter hands `collect` the one
+function that sends a body. The token match is id-first, text second
+(ADR-0002 D2, plan decision 4).
 """
 
 from __future__ import annotations
 
+import copy
 import math
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -17,6 +22,9 @@ from jevify.recipes.render import RenderedPart
 from jevify.recipes.schema import Token
 
 _PIECE_MARKS = {"Ġ": " ", "Ċ": "\n", "▁": " "}
+
+# The adapter's sender: posts one shaped body to the request's route and parses the reply.
+Send = Callable[[dict[str, Any]], Awaitable[Parsed]]
 
 
 def normalize_piece(text: str) -> str:
@@ -66,7 +74,22 @@ class MissingLabelsError(BackendError):
     proven rung takes the question; a pinned rung lets it surface."""
 
 
-class TopKRung:
+class OneRequestRung:
+    """A rung that reads the answer slot with one request: shape the body, send it."""
+
+    @staticmethod
+    def shape(body: dict[str, Any], part: RenderedPart, top_k: int, dialect: Dialect) -> None:
+        raise NotImplementedError
+
+    @classmethod
+    async def collect(
+        cls, send: Send, body: dict[str, Any], part: RenderedPart, top_k: int, dialect: Dialect
+    ) -> Parsed:
+        cls.shape(body, part, top_k, dialect)
+        return await send(body)
+
+
+class TopKRung(OneRequestRung):
     """Rung 3: ask for the top-k list unbiased; exact when every answer token is present."""
 
     rung = Rung.TOP_K
@@ -93,7 +116,7 @@ class TopKRung:
         return readout
 
 
-class NamedTokenLogprobsRung:
+class NamedTokenLogprobsRung(OneRequestRung):
     """Rung 1: ask vLLM for exactly the answer token ids; exact, off-menu mass visible."""
 
     rung = Rung.NAMED_TOKEN_LOGPROBS
@@ -131,7 +154,7 @@ def _answer_ids(part: RenderedPart) -> list[int]:
     return sorted({t.id for lbl in part.labels for t in part.tokens[lbl] if t.id is not None})
 
 
-class GrammarRung:
+class GrammarRung(OneRequestRung):
     """Rung 2: a grammar masks the vocabulary to the answer spellings and the server reports
     post-sampling probabilities renormalized over the survivors (llama.cpp)."""
 
@@ -171,8 +194,8 @@ class GrammarRung:
         return Readout(logprobs, None, readout.missing, degraded=False)
 
 
-class EqualBiasRung:
-    """Rung 4: the same bias on every answer token lifts them into the reported list without
+class EqualBiasRung(OneRequestRung):
+    """Rung 5: the same bias on every answer token lifts them into the reported list without
     changing their ratios (softmax is shift-invariant within the biased set)."""
 
     rung = Rung.EQUAL_BIAS
@@ -206,8 +229,8 @@ class EqualBiasRung:
         return readout
 
 
-class TopKFloorRung:
-    """Rung 5: top-k, but a label that fell out of the list gets the observed floor minus a
+class TopKFloorRung(OneRequestRung):
+    """Rung 6: top-k, but a label that fell out of the list gets the observed floor minus a
     margin, and the answer is marked degraded with the missing labels named."""
 
     rung = Rung.TOP_K_FLOOR
@@ -235,10 +258,93 @@ class TopKFloorRung:
         return Readout(logprobs, None, readout.missing, degraded=True)
 
 
+PROMPT_LOGPROBS_CAP = 20  # vLLM's default max_logprobs, and TensorFold's ceiling
+
+
+def _same(a: Entry, b: Entry) -> bool:
+    return a.id == b.id if a.id is not None and b.id is not None else a.text == b.text
+
+
+class PromptLogprobsRung:
+    """Rung 4: append an answer token to a raw prompt and read the row vLLM's
+    `prompt_logprobs` gives for that position: the token's exact logprob and the top-k beside
+    it, all from the one distribution at the answer slot. A spelling the rows have not shown
+    is appended in a request of its own, so every label is exact and off-menu mass visible.
+
+    For servers that give no reply-token logprobs (TensorFold's native server with
+    GLM-5.3-Flash). Such a server may also skip its prefix cache for these requests, which the
+    probe measures and records: each request then reads the whole state again."""
+
+    rung = Rung.PROMPT_LOGPROBS
+
+    @staticmethod
+    def available(capabilities: Capabilities | None) -> bool:
+        return bool(capabilities and Rung.PROMPT_LOGPROBS in capabilities.rungs)
+
+    @staticmethod
+    def shape(
+        body: dict[str, Any], part: RenderedPart, top_k: int, dialect: Dialect, append: Token
+    ) -> None:
+        if not isinstance(body.get("prompt"), str):
+            raise BackendError(
+                "the prompt_logprobs rung reads a raw-mode prompt on /v1/completions; "
+                "this recipe renders chat messages (or images on llama.cpp's native route)"
+            )
+        body["prompt"] += append.text
+        body["prompt_logprobs"] = min(top_k, PROMPT_LOGPROBS_CAP)
+        body.pop("logprobs", None)
+
+    @classmethod
+    async def collect(
+        cls, send: Send, body: dict[str, Any], part: RenderedPart, top_k: int, dialect: Dialect
+    ) -> Parsed:
+        spellings = list(
+            {(t.text, t.id): t for label in part.labels for t in part.tokens[label]}.values()
+        )
+        entries: list[Entry] = []
+        prompt_tokens: int | None = None
+        cached: int | None = None
+        for token in spellings:
+            if any(matches(entry, token) for entry in entries):
+                continue
+            request = copy.deepcopy(body)
+            cls.shape(request, part, top_k, dialect, token)
+            parsed = await send(request)
+            held = parsed.prompt_token
+            if held is None or not matches(held, token):
+                raise BackendError(
+                    f"the answer {token.text!r} appended to the prompt did not come back as its "
+                    f"own prompt token (the last prompt row holds "
+                    f"{held.text if held else None!r}); it fuses with the template's tail, so "
+                    "end the raw template where the answer starts a token of its own"
+                )
+            entries.extend(e for e in parsed.entries if not any(_same(e, f) for f in entries))
+            if parsed.prompt_tokens is not None:
+                prompt_tokens = (prompt_tokens or 0) + parsed.prompt_tokens
+            cached = parsed.cached_tokens
+        return Parsed(
+            entries=tuple(entries),
+            prompt_tokens=prompt_tokens,
+            cached_tokens=cached,
+            completion_tokens=None,
+        )
+
+    @staticmethod
+    def read(parsed: Parsed, part: RenderedPart) -> Readout:
+        readout = read_answer_set(parsed, part, full_softmax=True)
+        if readout.missing:
+            raise BackendError(
+                f"labels {list(readout.missing)} missing after appending each of them; "
+                "the server's prompt_logprobs rows did not list the appended tokens"
+            )
+        return readout
+
+
 RUNGS: dict[Rung, Any] = {
     Rung.TOP_K_FLOOR: TopKFloorRung,
     Rung.TOP_K: TopKRung,
     Rung.NAMED_TOKEN_LOGPROBS: NamedTokenLogprobsRung,
     Rung.GRAMMAR: GrammarRung,
+    Rung.PROMPT_LOGPROBS: PromptLogprobsRung,
     Rung.EQUAL_BIAS: EqualBiasRung,
 }

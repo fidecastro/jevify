@@ -27,7 +27,7 @@ from jevify.domain.questions import (
     State,
 )
 from jevify.evaluation.suites import SuiteError
-from jevify.ports.backend import BackendError
+from jevify.ports.backend import RUNG_RANK, BackendError
 from jevify.recipes import RecipeError, apply_probe, load_recipe, recipe_hash
 
 
@@ -82,7 +82,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ask.add_argument(
         "--rung",
-        choices=("named_token_logprobs", "grammar", "top_k", "equal_bias", "top_k_floor"),
+        choices=tuple(str(r) for r in RUNG_RANK),
         help="override the recipe's readout rung for this call",
     )
     serve = commands.add_parser("serve", help="serve Jev's API for one recipe")

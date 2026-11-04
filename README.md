@@ -9,7 +9,8 @@ Jev does, and measure how well it does.**
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
 
 You bring a model behind an OpenAI-compatible endpoint (vLLM, llama.cpp,
-anything with logprobs) or a small model that runs in-process. jevify sends it
+TensorFold, anything that returns logprobs for a reply token or for the
+prompt) or a small model that runs in-process. jevify sends it
 a **state** once, then asks **typed questions** about it: a choice among
 options, a score on ordered levels, a yes/no with a probability. Each answer
 is read straight off the model's next-token distribution, no generation, no
@@ -51,10 +52,16 @@ jevify ask recipes/gemma-4-e4b-it.llamacpp.yaml \
 jevify serve recipes/gemma-4-e4b-it.llamacpp.yaml --port 8600
 ```
 
-Any model behind vLLM or llama.cpp works, not only the ones under
+Any model behind an OpenAI-compatible server works, not only the ones under
 `recipes/`: copy the nearest recipe, set `endpoint.base_url` and
 `model.name`, and run the probe, which re-verifies the answer token ids for
-that model and writes what it found into the file.
+that model and writes what it found into the file. vLLM and llama.cpp get
+their dialect extras; any other server is driven through the plain OpenAI
+surface. A server that refuses logprobs on the reply token but returns
+vLLM's `prompt_logprobs`, such as TensorFold's native server with
+GLM-5.3-Flash, is read through the `prompt_logprobs` rung, which needs a
+raw-mode recipe (the template written out with the model's own control
+tokens, served on `/v1/completions`).
 
 `serve` binds to `127.0.0.1`. To reach it from other machines pass
 `--host 0.0.0.0`, and set `JEVIFY_API_KEY` first so that every request must
@@ -83,7 +90,9 @@ the cached tokens, the latency and the recipe hash that produced it.
    that reuses the server's prefix cache. A 32k-token state costs one warm and
    then a few hundred milliseconds per question.
 4. **Readout ladder.** Named-token logprobs, grammar with post-sampling
-   probabilities, top-k, equal bias, and a floored top-k as the last resort.
+   probabilities, top-k, prompt logprobs (each answer token appended to the
+   prompt and its logprob read back, for servers that give none on the reply
+   token), equal bias, and a floored top-k as the last resort.
    Auto walks down the proven rungs; the answer names the rung that read it
    and whether it was degraded.
 5. **Evidence.** `jevify eval` runs a frozen suite with controls (shuffled
@@ -94,7 +103,7 @@ the cached tokens, the latency and the recipe hash that produced it.
 
 | Kind | Talks to | Proven live with |
 |---|---|---|
-| `endpoint` | Any OpenAI-compatible server; dialect extras for vLLM and llama.cpp | DeepSeek-V4-Flash on vLLM; Ternary Bonsai 2 27B, Gemma 4 E4B and Qwen3-VL-Reranker 8B/2B on llama.cpp; text and images |
+| `endpoint` | Any OpenAI-compatible server that returns reply-token or prompt logprobs; dialect extras for vLLM and llama.cpp | DeepSeek-V4-Flash on vLLM; Ternary Bonsai 2 27B, Gemma 4 E4B and Qwen3-VL-Reranker 8B/2B on llama.cpp; text and images |
 | `embedding` | A `/v1/embeddings` route, or a model in-process | Qwen3-Embedding-0.6B in-process |
 | `encoder` | An NLI sequence-classification head in-process | facebook/bart-large-mnli in-process |
 | `rerank` | A `/v1/rerank` route | Fakes only |
@@ -242,10 +251,14 @@ dies before the armour, so the corridor needs a policy with memory, not
 better perception); the rerank kind and the
 embedding route against a live server; a marker-slot encoder layout; the
 grammar rung on the PrismML llama.cpp fork, which accepts a grammar without
-constraining the reported probabilities; Windows. Choice menus on the
-endpoint kind are bounded by the single-token identifier alphabet the probe
-verifies (26 on the DeepSeek recipe); Jev's 255-option ceiling is not
-reachable there.
+constraining the reported probabilities; the `prompt_logprobs` rung against a
+live server (written for TensorFold's native server with GLM-5.3-Flash, run
+only against the fake server in `tests/` so far; a server that skips its
+prefix cache for such requests, as TensorFold's source shows it does, makes
+every question read the whole state again, which the probe measures and
+notes); Windows. Choice menus on the endpoint kind are bounded by the
+single-token identifier alphabet the probe verifies (26 on the DeepSeek
+recipe); Jev's 255-option ceiling is not reachable there.
 
 ## Licence
 

@@ -17,6 +17,7 @@ class Rung(StrEnum):
     NAMED_TOKEN_LOGPROBS = "named_token_logprobs"
     GRAMMAR = "grammar"
     TOP_K = "top_k"
+    PROMPT_LOGPROBS = "prompt_logprobs"
     EQUAL_BIAS = "equal_bias"
     TOP_K_FLOOR = "top_k_floor"
     NATIVE = "native"  # a kind whose backend scores natively (rerank, embedding)
@@ -26,6 +27,7 @@ RUNG_RANK: tuple[Rung, ...] = (
     Rung.NAMED_TOKEN_LOGPROBS,
     Rung.GRAMMAR,
     Rung.TOP_K,
+    Rung.PROMPT_LOGPROBS,
     Rung.EQUAL_BIAS,
     Rung.TOP_K_FLOOR,
 )

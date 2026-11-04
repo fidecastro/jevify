@@ -8,10 +8,12 @@ import json
 import math
 import time
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from typing import Any
 
 from jevify.adapters.endpoint.client import OpenAICompatibleClient
-from jevify.adapters.endpoint.dialects import base_request, parse_response
-from jevify.adapters.endpoint.readout import RUNGS, MissingLabelsError
+from jevify.adapters.endpoint.dialects import Parsed, base_request, parse_response
+from jevify.adapters.endpoint.readout import RUNGS, MissingLabelsError, Send
 from jevify.domain.distribution import Distribution
 from jevify.domain.questions import Question, State
 from jevify.ports.backend import (
@@ -27,6 +29,14 @@ from jevify.recipes.render import render_prefix, render_question
 from jevify.recipes.schema import Recipe
 
 Clock = Callable[[], float]
+
+
+@dataclass
+class _Tally:
+    """What one question's requests cost: the calls made and their summed latency."""
+
+    calls: int = 0
+    latency_ms: float = 0.0
 
 
 class EndpointBackend:
@@ -171,7 +181,7 @@ class EndpointBackend:
         cancels; the record says how many calls it took."""
         impl = RUNGS[rung]
         sums: dict[str, float] = dict.fromkeys(question.labels, 0.0)
-        latency_ms = 0.0
+        tally = _Tally()
         prompt_tokens = 0
         cached_tokens: int | None = None
         degraded = False
@@ -182,14 +192,13 @@ class EndpointBackend:
             path, body = base_request(
                 self.recipe.model.name, handle.prefix, part.text, self.dialect
             )
-            impl.shape(body, part, self.recipe.readout.top_k, self.dialect)
-            if slot is not None:
-                body["id_slot"] = slot
-            started = self.clock()
-            post = self.client.post_root if path == "completion" else self.client.post_v1
-            response = await post(path, body)
-            latency_ms += (self.clock() - started) * 1000.0
-            parsed = parse_response(path, response, self.dialect)
+            parsed = await impl.collect(
+                self._sender(path, slot, tally),
+                body,
+                part,
+                self.recipe.readout.top_k,
+                self.dialect,
+            )
             readout = impl.read(parsed, part)
             distribution = Distribution.from_logprobs(readout.logprobs)
             for label, probability in distribution.as_mapping().items():
@@ -215,13 +224,28 @@ class EndpointBackend:
             rung=rung,
             degraded=degraded,
             off_menu_mass=(sum(off_menu) / len(off_menu)) if off_menu else None,
-            latency_ms=latency_ms,
+            latency_ms=tally.latency_ms,
             prompt_tokens=prompt_tokens,
             cached_tokens=cached_tokens,
-            calls=k,
+            calls=tally.calls,
             composition="permuted",
             raw={"parts": raw_parts},
         )
+
+    def _sender(self, path: str, slot: int | None, tally: _Tally) -> Send:
+        """The one way a readout request goes out: pinned to its slot, timed, counted."""
+        post = self.client.post_root if path == "completion" else self.client.post_v1
+
+        async def send(body: dict[str, Any]) -> Parsed:
+            if slot is not None:
+                body["id_slot"] = slot
+            started = self.clock()
+            response = await post(path, body)
+            tally.latency_ms += (self.clock() - started) * 1000.0
+            tally.calls += 1
+            return parse_response(path, response, self.dialect)
+
+        return send
 
     async def _answer(
         self, handle: StateHandle, question: Question, rung: Rung, slot: int | None = None
@@ -234,7 +258,7 @@ class EndpointBackend:
             return await self._permuted(handle, question, rung, slot, orders)
         impl = RUNGS[rung]
         readouts = []
-        latency_ms = 0.0
+        tally = _Tally()
         prompt_tokens = 0
         cached_tokens: int | None = None
         raw_parts = []
@@ -242,14 +266,13 @@ class EndpointBackend:
             path, body = base_request(
                 self.recipe.model.name, handle.prefix, part.text, self.dialect
             )
-            impl.shape(body, part, self.recipe.readout.top_k, self.dialect)
-            if slot is not None:
-                body["id_slot"] = slot
-            started = self.clock()
-            post = self.client.post_root if path == "completion" else self.client.post_v1
-            response = await post(path, body)
-            latency_ms += (self.clock() - started) * 1000.0
-            parsed = parse_response(path, response, self.dialect)
+            parsed = await impl.collect(
+                self._sender(path, slot, tally),
+                body,
+                part,
+                self.recipe.readout.top_k,
+                self.dialect,
+            )
             readouts.append(impl.read(parsed, part))
             prompt_tokens += parsed.prompt_tokens or 0
             cached_tokens = parsed.cached_tokens
@@ -271,11 +294,11 @@ class EndpointBackend:
             rung=rung,
             degraded=any(r.degraded for r in readouts),
             off_menu_mass=off_menu,
-            latency_ms=latency_ms,
+            latency_ms=tally.latency_ms,
             prompt_tokens=prompt_tokens,
             cached_tokens=cached_tokens,
             missing=missing,
-            calls=len(rendered.parts),
+            calls=tally.calls,
             composition=rendered.composition,
             raw={"parts": raw_parts},
         )

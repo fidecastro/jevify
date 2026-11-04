@@ -1,6 +1,6 @@
 ---
 name: jevify
-description: Operate jevify, the bring-your-own-model harness that makes a pretrained model answer Jev-shaped typed questions (choice, score, noul) over a shared state and measures how well it does. Use when asked to connect a model behind an OpenAI-compatible endpoint (vLLM, llama.cpp, others) or an in-process encoder or embedding model, write or probe a recipe, ask questions, run a suite, read a scorecard, calibrate, or serve Jev's API.
+description: Operate jevify, the bring-your-own-model harness that makes a pretrained model answer Jev-shaped typed questions (choice, score, noul) over a shared state and measures how well it does. Use when asked to connect a model behind an OpenAI-compatible endpoint (vLLM, llama.cpp, TensorFold, others) or an in-process encoder or embedding model, write or probe a recipe, ask questions, run a suite, read a scorecard, calibrate, or serve Jev's API.
 ---
 
 # Operating jevify
@@ -69,7 +69,9 @@ api_key_env, dialect: auto|vllm|llamacpp|generic, timeout_s, extra_body}`,
   fields also reach the tokenize and template routes the probe uses.
 - `template.mode: raw` sends a completion prompt you write with the model's
   own control tokens; use it when the chat template would not put the model
-  in its trained regime (the Qwen3-VL reranker recipe is the example).
+  in its trained regime (the Qwen3-VL reranker recipe is the example), and
+  for a server that refuses reply-token logprobs (TensorFold's native server
+  with GLM-5.3-Flash): only a raw prompt can carry the `prompt_logprobs` rung.
 - `template.questions.choice_strategy`: `identifiers` (one request, options
   labelled A, B, C) or `per_option` (one yes/no request per option; needed
   for a model that never emits letters, such as a reranker).
@@ -77,8 +79,11 @@ api_key_env, dialect: auto|vllm|llamacpp|generic, timeout_s, extra_body}`,
   the probe fills their ids.
 - `readout.rung: auto` walks the rungs the probe proved, strongest first:
   `named_token_logprobs` (vLLM with `logprob_token_ids`), `grammar`
-  (llama.cpp), `top_k`, `equal_bias`, `top_k_floor` (degraded, missing
-  labels floored and listed). A rung that cannot see every label hands the
+  (llama.cpp), `top_k`, `prompt_logprobs` (each answer spelling appended to
+  a raw prompt and read back from vLLM-style `prompt_logprobs` rows, one
+  request more for every spelling the rows did not show; exact, off-menu mass
+  visible), `equal_bias`, `top_k_floor` (degraded, missing labels floored and
+  listed). A rung that cannot see every label hands the
   question to the next; the answer names the rung that read it. A pinned rung
   never walks: it fails loudly instead.
 
@@ -151,6 +156,16 @@ TypeSafe's published thresholds refer to. Everything jevify adds is under
   checkpoint at the end of an earlier prompt, and a chat template closes the
   user turn right after the state. Use `template.mode: raw` so the warm prompt
   ends at the state boundary; the Bonsai recipe is the example.
+- **Probe notes "reply-token logprobs refused"**: the server gives no
+  logprobs on a generated token (TensorFold with GLM-5.3-Flash). Write a raw
+  recipe so the probe can prove `prompt_logprobs`; with a chat recipe the
+  probe ends in "no readout is possible".
+- **"did not come back as its own prompt token"**: the appended answer fuses
+  with the end of the raw template; end the template where the answer starts
+  a token of its own (after a newline, or before a leading-space spelling).
+- **Probe notes "prompt_logprobs requests reuse no cached prefix"**: the
+  server reads the whole state again for every question on that rung; keep
+  states short there, or serve the model where reply-token logprobs exist.
 - **Missing encoder extra**: the error names the install command.
 
 ## House rules that bind you here

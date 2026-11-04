@@ -1,0 +1,39 @@
+# Test recipe: a raw-mode decoder on a server that refuses reply-token logprobs but serves
+# vLLM's prompt_logprobs on /v1/completions (TensorFold's native server with GLM-5.3-Flash).
+schema_version: 1
+model:
+  name: fake-glm
+  kind: endpoint
+endpoint:
+  base_url: http://fake/v1
+  dialect: generic
+  timeout_s: 30
+template:
+  mode: raw
+  raw: "<|system|>You answer typed questions about the state with a single word.<|user|>{state}{question}<|assistant|></think>\n\n"
+  state_end: "\n"
+  questions:
+    choice: "\nQuestion: {instructions}\nOptions:\n{options}\nAnswer with the identifier of the best option."
+    option_line: "{identifier}. {key}{description}"
+    description_sep: ": "
+    score: "\nQuestion: {instructions}\nLevels:\n{levels}\nAnswer with the identifier of the level that applies."
+    level_line: "{identifier}. {text}"
+    noul: "\nQuestion: {instructions}\nAnswer with exactly one word, yes or no."
+answers:
+  noul:
+    "true":
+      - { text: "yes", id: 16520 }
+    "false":
+      - { text: "no", id: 3567 }
+  identifiers:
+    - [{ text: "A", id: 35 }]
+    - [{ text: "B", id: 36 }]
+    - [{ text: "C" }]
+readout:
+  rung: auto
+  top_k: 10
+  permutation: none
+provenance:
+  author: tests
+  created: "2026-11-04"
+  status: draft

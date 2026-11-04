@@ -6,7 +6,17 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-Rung = Literal["auto", "named_token_logprobs", "grammar", "top_k", "equal_bias", "top_k_floor"]
+# A pinned mirror of jevify.ports.backend.RUNG_RANK (the schema cannot import the port, which
+# imports the schema); tests/guards/test_rung_registry.py compares the two.
+Rung = Literal[
+    "auto",
+    "named_token_logprobs",
+    "grammar",
+    "top_k",
+    "prompt_logprobs",
+    "equal_bias",
+    "top_k_floor",
+]
 Dialect = Literal["auto", "vllm", "llamacpp", "generic"]
 
 

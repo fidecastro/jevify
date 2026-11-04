@@ -29,6 +29,8 @@ class Parsed:
     prompt_tokens: int | None
     cached_tokens: int | None
     completion_tokens: int | None
+    # read from a prompt_logprobs row: the token the prompt actually holds at that position
+    prompt_token: Entry | None = None
 
 
 def base_request(
@@ -126,6 +128,26 @@ def parse_response(path: str, response: dict[str, Any], dialect: Dialect) -> Par
             completion_tokens=response.get("tokens_predicted"),
         )
     choice = response["choices"][0]
+    usage = response.get("usage") or {}
+    details = usage.get("prompt_tokens_details") or {}
+    rows = choice.get("prompt_logprobs")
+    if isinstance(rows, list) and rows and isinstance(rows[-1], dict):
+        # vLLM's prompt_logprobs (TensorFold writes the same): null, then one {id: {logprob,
+        # rank, decoded_token}} row a prompt token, the prompt's own token listed first. The
+        # last row is the position of the last prompt token.
+        row = [
+            Entry(
+                text=str(item.get("decoded_token", "")), logprob=float(item["logprob"]), id=int(key)
+            )
+            for key, item in rows[-1].items()
+        ]
+        return Parsed(
+            entries=tuple(row),
+            prompt_tokens=usage.get("prompt_tokens"),
+            cached_tokens=details.get("cached_tokens"),
+            completion_tokens=usage.get("completion_tokens"),
+            prompt_token=row[0] if row else None,
+        )
     logprobs = choice.get("logprobs") or {}
     # Shape-driven, not dialect-driven: llama.cpp answers the completions route with the
     # chat-style `content` list (ids included); OpenAI and vLLM use the dict form there.
@@ -137,8 +159,6 @@ def parse_response(path: str, response: dict[str, Any], dialect: Dialect) -> Par
     else:
         top = (logprobs.get("top_logprobs") or [{}])[0] or {}
         entries = [Entry(text=text, logprob=float(lp)) for text, lp in top.items()]
-    usage = response.get("usage") or {}
-    details = usage.get("prompt_tokens_details") or {}
     cached = details.get("cached_tokens")
     if cached is None and "tokens_cached" in response:
         cached = response.get("tokens_cached")
