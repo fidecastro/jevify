@@ -66,7 +66,7 @@ on an adapter module; a structure guard enforces the import ban.
 
 | Kind | Talks to | Readout | Semantics |
 |---|---|---|---|
-| `endpoint` | Any OpenAI-compatible HTTP server | One generated token; distribution from logprobs at the answer position | `readout` |
+| `endpoint` | Any OpenAI-compatible HTTP server | One generated token, or an answer token appended to the prompt; distribution from logprobs at the answer position | `readout` |
 | `encoder` | An in-process encoder classifier loaded through Transformers | The head's scores at option marker slots (Laya's layout) or label logits (GLiClass, NLI) | `readout` |
 | `rerank` | A rerank or score endpoint, or a reranker model in-process | One independent relevance score per option | `relevance` |
 | `embedding` | An embeddings endpoint or model | Cosine between instruction-conditioned state vector and cached option vectors | `similarity` |
@@ -91,7 +91,7 @@ requests and records:
 - whether each answer token under the recipe's template is a single token
   (via the tokenizer or the server's tokenize endpoint);
 - whether all answer tokens come back in the logprobs unbiased, biased, or
-  only through named-token logprobs or a grammar;
+  only through named-token logprobs, a grammar or prompt logprobs;
 - whether assistant prefill and template arguments (thinking off) are honored;
 - whether a second request over the same state is measurably faster than the
   first, which is the only proof that the prefix is cached;
@@ -115,8 +115,11 @@ allows, in this order:
    (exact over the answer set, off-menu mass hidden);
 3. an unbiased top-k request when every answer token is present (exact, and
    off-menu mass visible);
-4. equal bias on all answer tokens (exact ratios, off-menu mass hidden);
-5. top-k with a floor for missing tokens, marked degraded in the answer.
+4. prompt logprobs at an answer token appended to a raw prompt, one request
+   more for each answer spelling the rows did not show (exact, off-menu mass
+   visible; added 2026-11-04, below);
+5. equal bias on all answer tokens (exact ratios, off-menu mass hidden);
+6. top-k with a floor for missing tokens, marked degraded in the answer.
 
 The method used is recorded on every answer. A recipe may pin a rung; it may
 not skip the ladder's recording.
@@ -130,6 +133,30 @@ also proves two things it used to assume: that an image adds prompt tokens
 (a server can accept an image and drop it), and how much of a warm prefix a
 question request reuses (a recurrent model resumes only from a checkpoint at
 the end of an earlier prompt, so a chat-template warm can buy nothing).
+
+Amended 2026-11-04, for a server that refuses reply-token logprobs:
+TensorFold's native server (pin `f350cd3e`) serves logprobs on a generated
+token only for a family that gives the first token's row, and GLM-5.3-Flash
+does not, so every rung above that reads a generated token is refused with a
+400. The same server, like vLLM, returns `prompt_logprobs` on
+`/v1/completions`: null, then one `{id: {logprob, rank, decoded_token}}` row
+for each prompt token, the token the prompt holds listed first. The
+`prompt_logprobs` rung appends an answer spelling to the raw prompt and reads
+the last row: the appended token's exact logprob and the top-k beside it, all
+from the one distribution at the answer slot. A spelling the rows did not
+show is appended in a request of its own, so every label is exact and the
+off-menu mass visible. The rung refuses a row whose prompt token is not the
+appended one: an answer that fuses with the template's tail would be read at
+the wrong position. It reads raw prompts only (TensorFold serves
+`prompt_logprobs` on the completions route alone). It sits below `top_k`,
+which needs one request, and above `equal_bias`, which hides the off-menu
+mass. The probe no longer assumes reply-token logprobs: a 400 on its first
+readout is recorded, the rungs that need them stay unproven, its own usage
+and timing requests stop asking for them, and the probe proves
+`prompt_logprobs` by appending an answer and checking the row. It also sends
+that request twice and records when the repeat reuses no cached prefix,
+since TensorFold skips its prefix cache for any request with
+`prompt_logprobs` and each question then reads the whole state again.
 
 ### D5 — Choice questions on decoders
 

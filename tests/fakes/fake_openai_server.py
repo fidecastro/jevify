@@ -65,6 +65,16 @@ class Behaviour:
     image_tokens: int = 64  # prompt tokens one seen image adds (0 = accepted but dropped)
     # answer texts that tokenize to two tokens on this "model" (probe must catch them)
     multi_token_answers: set[str] = field(default_factory=set)
+    # False: reply-token `logprobs` are refused with a 400, as TensorFold's native server does
+    # for a family without a first-row hook (GLM-5.3-Flash)
+    reply_logprobs: bool = True
+    # vLLM's `prompt_logprobs` on /v1/completions: null, then one {id: {logprob, rank,
+    # decoded_token}} row a prompt token, the prompt token listed first. Off: the field is
+    # ignored, as llama.cpp does.
+    prompt_logprobs: bool = False
+    # False: a prompt_logprobs request reuses no cached prefix (TensorFold runs the head over
+    # every prompt row, so it skips the prefix cache for such requests)
+    prompt_logprobs_reuse: bool = True
 
 
 class FakeTokenizer:
@@ -269,6 +279,8 @@ class FakeOpenAIServer:
             else:
                 break
         seen.update(full_blocks)
+        if body.get("prompt_logprobs") is not None and not b.prompt_logprobs_reuse:
+            cached = 0
         if b.checkpoint_reuse_only:
             done = self.completed_prompts.setdefault(
                 int(body.get("id_slot", 0) or 0) % max(1, b.slots), []
@@ -300,6 +312,48 @@ class FakeOpenAIServer:
             )
         return None
 
+    def _refuse_reply_logprobs(self, body: dict[str, Any]) -> JSONResponse | None:
+        """TensorFold's refusal when the family gives no first-token logprob row."""
+        asked = body.get("logprobs") not in (None, False) or body.get("top_logprobs") is not None
+        if self.behaviour.reply_logprobs or not asked:
+            return None
+        self.in_flight -= 1
+        return JSONResponse(
+            {"error": {"message": "logprobs are not supported by this model or backend"}},
+            status_code=400,
+        )
+
+    def _prompt_rows(self, prompt: str, body: dict[str, Any]) -> list[Any]:
+        """vLLM's prompt_logprobs: null, then a row a prompt token. Only the last row is the
+        "model": the distribution before the last piece, the piece itself first, then the
+        top-k beside it. Earlier rows hold just their own token."""
+        b = self.behaviour
+        pieces = self.tokenizer.pieces(prompt)
+        rows: list[Any] = [None]
+        for piece in pieces[1:-1]:
+            ident = str(self.tokenizer.id_of(piece))
+            rows.append({ident: {"logprob": -1.0, "rank": 1, "decoded_token": piece}})
+        last = pieces[-1]
+        logprobs = self._distribution(prompt[: len(prompt) - len(last)], {})
+        ranked = sorted(logprobs.items(), key=lambda kv: kv[1], reverse=True)
+        rank = {text: i + 1 for i, (text, _) in enumerate(ranked)}
+        row = {
+            str(self.tokenizer.id_of(last)): {
+                "logprob": logprobs.get(last, -20.0),
+                "rank": rank.get(last, len(ranked) + 1),
+                "decoded_token": last,
+            }
+        }
+        for text, lp in ranked[: min(int(body["prompt_logprobs"]), b.top_k_cap)]:
+            if text != last:
+                row[str(self.tokenizer.id_of(text))] = {
+                    "logprob": lp,
+                    "rank": rank[text],
+                    "decoded_token": text,
+                }
+        rows.append(row)
+        return rows
+
     def _too_long(self, prompt: str) -> JSONResponse | None:
         n = len(self.tokenizer.encode(prompt))
         if n > self.behaviour.max_context:
@@ -322,6 +376,8 @@ class FakeOpenAIServer:
         body = await request.json()
         if (gated := self._gate(body, "/v1/chat/completions")) is not None:
             return gated
+        if (refused := self._refuse_reply_logprobs(body)) is not None:
+            return refused
         has_image = any(
             isinstance(m.get("content"), list)
             and any(p.get("type") == "image_url" for p in m["content"])
@@ -375,6 +431,8 @@ class FakeOpenAIServer:
         body = await request.json()
         if (gated := self._gate(body, "/v1/completions")) is not None:
             return gated
+        if (refused := self._refuse_reply_logprobs(body)) is not None:
+            return refused
         prompt = body["prompt"]
         if isinstance(prompt, list):
             prompt = " ".join(str(t) for t in prompt)
@@ -384,6 +442,24 @@ class FakeOpenAIServer:
         entries = self._entries(logprobs, body)
         sampled = max(logprobs.items(), key=lambda kv: kv[1])
         usage = await self._cache_and_usage(prompt, body)
+        if body.get("prompt_logprobs") is not None and self.behaviour.prompt_logprobs:
+            return self._record(
+                {
+                    "id": "cmpl-fake",
+                    "object": "text_completion",
+                    "model": body.get("model", "fake"),
+                    "choices": [
+                        {
+                            "index": 0,
+                            "text": sampled[0],
+                            "logprobs": None,
+                            "prompt_logprobs": self._prompt_rows(prompt, body),
+                            "finish_reason": "length",
+                        }
+                    ],
+                    "usage": usage,
+                }
+            )
         if self.behaviour.dialect == "llamacpp":
             # llama.cpp answers the completions route with the chat-style content list.
             return self._record(

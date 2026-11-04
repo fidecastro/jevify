@@ -23,7 +23,7 @@ from jevify.adapters.endpoint.dialects import (
     neutral_samplers,
     parse_response,
 )
-from jevify.adapters.endpoint.readout import matches, read_answer_set
+from jevify.adapters.endpoint.readout import PromptLogprobsRung, matches, read_answer_set
 from jevify.domain.questions import NoulQuestion, State
 from jevify.ports.backend import (
     BackendError,
@@ -83,6 +83,9 @@ class Prober:
         self.clock = clock
         self.notes: list[str] = []
         self.image_marker: str | None = None
+        # whether the backend gives reply-token logprobs; the probe's own usage and timing
+        # requests ask for them only where they are served
+        self.reply_logprobs = True
 
     async def run(self) -> Capabilities:
         assert self.recipe.endpoint is not None
@@ -99,26 +102,36 @@ class Prober:
         )
         part = question.parts[0]
 
-        parsed, entries_requested = await self._readout(
-            prefix, part, dialect, self.recipe.readout.top_k
-        )
-        top_k_cap = len(parsed.entries) if parsed.entries else 0
-        if top_k_cap == 0:
-            raise BackendError("no readout is possible on this backend: it returned no logprobs")
-        readout = read_answer_set(parsed, part, full_softmax=True)
-        if readout.missing:
-            self.notes.append(
-                f"probe case: labels {list(readout.missing)} outside the top-{top_k_cap}"
+        entries_requested = self.recipe.readout.top_k
+        parsed = await self._reply_readout(prefix, part, dialect, entries_requested)
+        self.reply_logprobs = parsed is not None
+        rungs: set[Rung] = set()
+        top_k_cap: int | None = None
+        post_bias: bool | None = None
+        if parsed is not None:
+            top_k_cap = len(parsed.entries)
+            readout = read_answer_set(parsed, part, full_softmax=True)
+            if readout.missing:
+                self.notes.append(
+                    f"probe case: labels {list(readout.missing)} outside the top-{top_k_cap}"
+                )
+            rungs |= {Rung.TOP_K, Rung.TOP_K_FLOOR}
+            if await self._named_token_logprobs(prefix, part, dialect, answer_tokens):
+                rungs.add(Rung.NAMED_TOKEN_LOGPROBS)
+            post_bias = await self._bias_visible(
+                prefix, part, dialect, parsed.entries, answer_tokens
             )
-
-        rungs = {Rung.TOP_K, Rung.TOP_K_FLOOR}
-        if await self._named_token_logprobs(prefix, part, dialect, answer_tokens):
-            rungs.add(Rung.NAMED_TOKEN_LOGPROBS)
-        post_bias = await self._bias_visible(prefix, part, dialect, parsed.entries, answer_tokens)
-        if post_bias:
-            rungs.add(Rung.EQUAL_BIAS)
-        if dialect is Dialect.LLAMACPP and await self._grammar_honoured(prefix, part, dialect):
-            rungs.add(Rung.GRAMMAR)
+            if post_bias:
+                rungs.add(Rung.EQUAL_BIAS)
+            if dialect is Dialect.LLAMACPP and await self._grammar_honoured(prefix, part, dialect):
+                rungs.add(Rung.GRAMMAR)
+        if await self._prompt_logprobs_honoured(prefix, part, dialect):
+            rungs.add(Rung.PROMPT_LOGPROBS)
+        if not rungs:
+            raise BackendError(
+                "no readout is possible on this backend: it returned no logprobs, "
+                "neither for a reply token nor through prompt_logprobs"
+            )
         prefill = await self._prefill_honored(dialect) if prefix.mode == "messages" else None
         cache = await self._cache(state, dialect)
         slots = await self._slots(dialect)
@@ -135,7 +148,9 @@ class Prober:
             max_context=max_context,
             modalities=frozenset(modalities),
             rungs=frozenset(rungs),
-            top_k_cap=top_k_cap if top_k_cap < entries_requested else None,
+            top_k_cap=top_k_cap
+            if top_k_cap is not None and top_k_cap < entries_requested
+            else None,
             logprobs_post_bias=post_bias,
             prefill_honored=prefill,
             template_kwargs_honored=kwargs_honored,
@@ -277,14 +292,72 @@ class Prober:
         return any(rendered.find(c, last_open) >= 0 for c in closes)
 
     # ------------------------------------------------------------------ readout checks
-    async def _readout(self, prefix, part: RenderedPart, dialect: Dialect, top_k: int):
+    def _usage_request(self, body: dict[str, Any]) -> None:
+        """Shape a probe request that needs only usage or timing: one reply-token logprob where
+        the backend serves them (the existing measurements were taken that way), none where it
+        refuses them (TensorFold's native server with GLM-5.3-Flash)."""
+        if not self.reply_logprobs:
+            body.pop("logprobs", None)
+            return
+        body["logprobs"] = True if "messages" in body else 1
+        if "messages" in body:
+            body["top_logprobs"] = 1
+
+    async def _reply_readout(self, prefix, part: RenderedPart, dialect: Dialect, top_k: int):
+        """The answer slot's top-k from one generated token, or None when the backend refuses
+        reply-token logprobs (a 400) or returns none: the rungs that read them stay unproven."""
         path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
         if "messages" in body:
             body["top_logprobs"] = top_k
         else:
             body["logprobs"] = top_k
-        response = await self.client.post_v1(path, body)
-        return parse_response(path, response, dialect), top_k
+        try:
+            response = await self.client.post_v1(path, body)
+        except BackendError as exc:
+            if exc.status != 400:
+                raise
+            self.notes.append(f"reply-token logprobs refused: {exc}")
+            return None
+        parsed = parse_response(path, response, dialect)
+        if not parsed.entries:
+            self.notes.append("reply-token logprobs requested, none returned")
+            return None
+        return parsed
+
+    async def _prompt_logprobs_honoured(self, prefix, part: RenderedPart, dialect: Dialect) -> bool:
+        """Append the probe question's first answer spelling to the raw prompt and ask for
+        prompt_logprobs: proven when the last prompt row holds exactly that token. The request
+        is sent twice, and a repeat that reuses no cached prefix is recorded, since every
+        question then reads the whole state again."""
+        path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
+        if path != "completions":
+            return False  # the rung reads raw prompts on /v1/completions only
+        token = part.tokens[part.labels[0]][0]
+        PromptLogprobsRung.shape(body, part, self.recipe.readout.top_k, dialect, token)
+        try:
+            first = parse_response(path, await self.client.post_v1(path, body), dialect)
+        except BackendError as exc:
+            if exc.status != 400:
+                raise
+            self.notes.append(f"prompt_logprobs refused: {exc}")
+            return False
+        if first.prompt_token is None:
+            return False  # the field was ignored (llama.cpp) or the server lists no such rows
+        if not matches(first.prompt_token, token):
+            self.notes.append(
+                f"prompt_logprobs: the appended answer {token.text!r} came back as "
+                f"{first.prompt_token.text!r}; it fuses with the template's tail, so the "
+                "prompt_logprobs rung is not proven for this recipe"
+            )
+            return False
+        second = parse_response(path, await self.client.post_v1(path, body), dialect)
+        if second.prompt_tokens and not second.cached_tokens:
+            self.notes.append(
+                f"prompt_logprobs requests reuse no cached prefix on this backend (0 of "
+                f"{second.prompt_tokens} prompt tokens on a repeat): each one reads the whole "
+                "state again"
+            )
+        return True
 
     async def _named_token_logprobs(self, prefix, part, dialect, answer_tokens) -> bool:
         if dialect is not Dialect.VLLM or not answer_tokens:
@@ -440,16 +513,14 @@ class Prober:
             except ValueError as exc:
                 self.notes.append(f"images not sendable with this recipe: {exc}")
                 return False
-            body["logprobs"] = True if "messages" in body else 1
-            if "messages" in body:
-                body["top_logprobs"] = 1
+            self._usage_request(body)
             post = self.client.post_root if path == "completion" else self.client.post_v1
             try:
                 parsed = parse_response(path, await post(path, body), dialect)
             except BackendError as exc:
                 self.notes.append(f"image part rejected: {exc}")
                 return False
-            if not parsed.entries:
+            if self.reply_logprobs and not parsed.entries:
                 return False
             counts.append(parsed.prompt_tokens)
         seen, text_only = counts
@@ -483,9 +554,7 @@ class Prober:
 
         def request(slot: int | None):
             path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
-            body["logprobs"] = True if "messages" in body else 1
-            if "messages" in body:
-                body["top_logprobs"] = 1
+            self._usage_request(body)
             if slot is not None:
                 body["id_slot"] = slot
             post = self.client.post_root if path == "completion" else self.client.post_v1
@@ -519,9 +588,7 @@ class Prober:
                 self.recipe, NoulQuestion(id="cache", instructions="cache probe")
             ).parts[0]
             path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
-            body["logprobs"] = True if "messages" in body else 1
-            if "messages" in body:
-                body["top_logprobs"] = 1
+            self._usage_request(body)
             t0 = self.clock()
             first = parse_response(path, await self.client.post_v1(path, body), dialect)
             t1 = self.clock()
@@ -565,18 +632,14 @@ class Prober:
         the end of earlier prompts), while a KV-cache model still reuses the shared tokens."""
         prefix = render_prefix(self.recipe, state)
         path, body = base_request(self.recipe.model.name, prefix, "", dialect)
-        body["logprobs"] = True if "messages" in body else 1
-        if "messages" in body:
-            body["top_logprobs"] = 1
+        self._usage_request(body)
         post = self.client.post_root if path == "completion" else self.client.post_v1
         warm = parse_response(path, await post(path, body), dialect)
         part = render_question(
             self.recipe, NoulQuestion(id="reuse", instructions="warm reuse probe")
         ).parts[0]
         path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
-        body["logprobs"] = True if "messages" in body else 1
-        if "messages" in body:
-            body["top_logprobs"] = 1
+        self._usage_request(body)
         question = parse_response(path, await post(path, body), dialect)
         if warm.prompt_tokens is None or question.cached_tokens is None:
             return None, None
