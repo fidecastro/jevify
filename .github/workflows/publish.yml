@@ -1,0 +1,133 @@
+# ADR-0007: a published GitHub release is built here from its tag and sent
+# to PyPI by trusted publishing. No token is stored anywhere.
+name: publish
+
+on:
+  release:
+    types: [published]
+  # Dry run against an existing tag: builds, checks and compares, never publishes.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build and check, e.g. v0.2.0"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ inputs.tag || github.event.release.tag_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag || github.event.release.tag_name }}
+
+jobs:
+  build:
+    name: build and check
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      attach: ${{ steps.compare.outputs.attach }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Tag matches the package version
+        id: version
+        run: |
+          version="$(uv version --short)"
+          if [ "v${version}" != "${TAG}" ]; then
+            echo "::error::tag ${TAG} does not match version ${version} in pyproject.toml"
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - name: Build
+        run: uv build
+      - name: twine check
+        run: uvx twine check --strict dist/*
+      - name: Install the wheel as a tool and run it from another directory
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          uv tool install dist/*.whl
+          cd "${RUNNER_TEMP}"
+          got="$(jevify --version)"
+          if [ "${got}" != "jevify ${VERSION}" ]; then
+            echo "::error::installed wheel reports '${got}', expected 'jevify ${VERSION}'"
+            exit 1
+          fi
+      - name: Compare with the files attached to the release
+        id: compare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          attached_names="$(gh release view "${TAG}" --json assets \
+            -q '.assets[].name | select(endswith(".whl") or endswith(".tar.gz"))')"
+          if [ -z "${attached_names}" ]; then
+            echo "No wheel or sdist attached to ${TAG}; this build is attached after publishing."
+            echo "attach=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          dir="${RUNNER_TEMP}/attached"
+          mkdir -p "${dir}"
+          gh release download "${TAG}" -p '*.whl' -p '*.tar.gz' -D "${dir}"
+          built="$(cd dist && sha256sum -- *.whl *.tar.gz)"
+          attached="$(cd "${dir}" && sha256sum -- *.whl *.tar.gz)"
+          if [ "${built}" != "${attached}" ]; then
+            echo "::error::the files attached to ${TAG} differ from this build of the tag"
+            echo "built:";    echo "${built}"
+            echo "attached:"; echo "${attached}"
+            exit 1
+          fi
+          echo "Attached files are byte-identical to this build:"
+          echo "${built}"
+          echo "attach=false" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: publish to PyPI
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/jevify/${{ needs.build.outputs.version }}/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  attach:
+    name: attach build to the release
+    needs: [build, publish]
+    if: github.event_name == 'release' && needs.build.outputs.attach == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Upload wheel, sdist and SHA256SUMS
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cd dist
+          sha256sum -- *.whl *.tar.gz > SHA256SUMS
+          cat SHA256SUMS
+          gh release upload "${TAG}" *.whl *.tar.gz SHA256SUMS

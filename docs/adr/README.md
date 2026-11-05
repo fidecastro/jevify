@@ -18,3 +18,4 @@ later documents can cite "ADR-0002 D3".
 | [0004](0004-recipes.md) | Recipes: the hashed file that is the only way a model is asked | Accepted (2026-09-19) |
 | [0005](0005-evaluation-evidence-and-calibration.md) | Suites, scorecards, committed evidence, post-hoc calibration | Accepted (2026-09-19) |
 | [0006](0006-toolchain-dependency-budget-and-portability.md) | Toolchain, dependency budget and portability: five light core packages, extras, argparse, uv/pipx, Python 3.12–3.14, no lock-in | Accepted (2026-09-19); makes ADR-0001 D4 precise |
+| [0007](0007-release-publishing.md) | Releases reach PyPI from CI by trusted publishing; the CI build must match the release files | Accepted (2026-11-04) |
