@@ -67,6 +67,10 @@ RESERVED_REQUEST_FIELDS: frozenset[str] = frozenset(
     }
 )
 
+# `endpoint.headers` may not name one of these: jevify owns them (Authorization comes only
+# from `endpoint.api_key_env`; Content-Type is always application/json).
+RESERVED_HEADER_NAMES: frozenset[str] = frozenset({"content-type", "authorization"})
+
 
 class OpenAICompatibleClient:
     """HTTP access to one server. `v1/*` for the OpenAI surface, root for server extras."""
@@ -80,6 +84,7 @@ class OpenAICompatibleClient:
         http: httpx.AsyncClient | None = None,
         max_retries: int = 3,
         extra_body: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
     ) -> None:
         stripped = base_url.rstrip("/")
         self.root = stripped[: -len("/v1")] if stripped.endswith("/v1") else stripped
@@ -88,13 +93,19 @@ class OpenAICompatibleClient:
         self.timeout_s = timeout_s
         self.max_retries = max_retries
         self.extra_body = dict(extra_body or {})
-        _refuse_reserved(set(self.extra_body) & RESERVED_REQUEST_FIELDS)
+        _refuse_reserved(set(self.extra_body) & RESERVED_REQUEST_FIELDS, config_field="extra_body")
+        self.extra_headers = dict(headers or {})
+        _refuse_reserved(
+            {n for n in self.extra_headers if n.lower() in RESERVED_HEADER_NAMES},
+            config_field="headers",
+        )
         self._http = http or httpx.AsyncClient(timeout=httpx.Timeout(timeout_s))
 
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        headers.update(self.extra_headers)
         return headers
 
     async def _request(self, method: str, url: str, body: dict[str, Any] | None = None) -> Any:
@@ -132,10 +143,10 @@ class OpenAICompatibleClient:
         await self._http.aclose()
 
 
-def _refuse_reserved(clash: set[str]) -> None:
+def _refuse_reserved(clash: set[str], *, config_field: str) -> None:
     if clash:
         raise BackendError(
-            f"endpoint.extra_body may not set {', '.join(sorted(clash))}: jevify sets it"
+            f"endpoint.{config_field} may not set {', '.join(sorted(clash))}: jevify sets it"
         )
 
 
@@ -143,7 +154,7 @@ def _merge_extra(body: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any]:
     """Add the recipe's extra fields; never let one replace a field jevify set. The registry
     check at construction is the rule; this per-request check is the backstop for a field
     the registry does not know yet."""
-    _refuse_reserved(set(body) & set(extra))
+    _refuse_reserved(set(body) & set(extra), config_field="extra_body")
     return {**body, **extra}
 
 

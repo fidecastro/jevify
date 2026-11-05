@@ -53,8 +53,8 @@ Every recipe has `schema_version: 1`, `model: {name, kind, revision}` and
 the rest.
 
 **`endpoint`** (any OpenAI-compatible server): `endpoint: {base_url,
-api_key_env, dialect: auto|vllm|llamacpp|generic, timeout_s, extra_body}`,
-`template` and `answers`.
+api_key_env, dialect: auto|vllm|llamacpp|generic, timeout_s, extra_body,
+headers}`, `template` and `answers`.
 - `template.mode: messages` sends chat messages; put thinking off in
   `template.kwargs` (`{thinking: false}` for DeepSeek, `{enable_thinking:
   false}` for Qwen3-class models; names are model-specific, the probe checks
@@ -67,6 +67,12 @@ api_key_env, dialect: auto|vllm|llamacpp|generic, timeout_s, extra_body}`,
   `logprobs`, `logit_bias`, ...) is refused when the backend is built, before
   any request, so probe, ask, eval and serve all fail the same way. The
   fields also reach the tokenize and template routes the probe uses.
+- `endpoint.headers` adds static HTTP headers to every request, for a router
+  or gateway that requires one (`{x-client-id: agenticApp}`). The values are
+  written in the recipe and hashed with it, so never put a secret there: a key
+  goes in the env var that `api_key_env` names, sent as `Authorization:
+  Bearer`. `Content-Type` and `Authorization` are refused when the backend is
+  built. Every endpoint-backed kind sends them (endpoint, rerank, embedding).
 - `template.mode: raw` sends a completion prompt you write with the model's
   own control tokens; use it when the chat template would not put the model
   in its trained regime (the Qwen3-VL reranker recipe is the example), and

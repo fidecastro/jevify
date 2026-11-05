@@ -1,0 +1,186 @@
+schema_version: 1
+model:
+  name: qwen38-27b
+  kind: endpoint
+endpoint:
+  base_url: http://path-to-vllm.provider.com/v1
+  dialect: vllm
+  timeout_s: 120.0
+  headers:
+    x-client-id: agenticApp
+template:
+  mode: messages
+  system: You answer typed questions about the state with a single token.
+  state: 'State:
+
+    {state}'
+  state_end: '
+
+
+    '
+  kwargs:
+    enable_thinking: false
+  image_marker: <__media__>
+  questions:
+    choice: 'Question: {instructions}
+
+      Options:
+
+      {options}
+
+      Answer with the identifier of the best option.'
+    option_line: '{identifier}. {key}{description}'
+    description_sep: ': '
+    score: 'Question: {instructions}
+
+      Levels:
+
+      {levels}
+
+      Answer with the identifier of the level that applies.'
+    level_line: '{identifier}. {text}'
+    noul: 'Question: {instructions}
+
+      Answer with exactly one word, yes or no.'
+    choice_strategy: identifiers
+answers:
+  noul:
+    'true':
+    - text: 'yes'
+      id: 9405
+    - text: 'Yes'
+      id: 9175
+    - text: ' yes'
+      id: 9542
+    - text: ' Yes'
+      id: 7179
+    'false':
+    - text: 'no'
+      id: 2083
+    - text: 'No'
+      id: 2665
+    - text: ' no'
+      id: 874
+    - text: ' No'
+      id: 2233
+  identifiers:
+  - - text: A
+      id: 32
+    - text: ' A'
+      id: 357
+  - - text: B
+      id: 33
+    - text: ' B'
+      id: 417
+  - - text: C
+      id: 34
+    - text: ' C'
+      id: 351
+  - - text: D
+      id: 35
+    - text: ' D'
+      id: 414
+  - - text: E
+      id: 36
+    - text: ' E'
+      id: 458
+  - - text: F
+      id: 37
+    - text: ' F'
+      id: 426
+  - - text: G
+      id: 38
+    - text: ' G'
+      id: 469
+  - - text: H
+      id: 39
+    - text: ' H'
+      id: 462
+  - - text: I
+      id: 40
+    - text: ' I'
+      id: 353
+  - - text: J
+      id: 41
+    - text: ' J'
+      id: 604
+readout:
+  rung: auto
+  top_k: 20
+  permutation: none
+  permutation_calls: 1
+probe:
+  kind: endpoint
+  model: qwen38-27b
+  dialect: vllm
+  backend_version: 0.1.12.dev7+gaef9df496.d20260527
+  max_context: 32768
+  modalities:
+  - text
+  rungs:
+  - top_k
+  - top_k_floor
+  top_k_cap: null
+  logprobs_post_bias: false
+  prefill_honored: null
+  template_kwargs_honored: true
+  token_ids_verified: true
+  answer_tokens:
+    'yes': 9405
+    'Yes': 9175
+    ' yes': 9542
+    ' Yes': 7179
+    'no': 2083
+    'No': 2665
+    ' no': 874
+    ' No': 2233
+    A: 32
+    ' A': 357
+    B: 33
+    ' B': 417
+    C: 34
+    ' C': 351
+    D: 35
+    ' D': 414
+    E: 36
+    ' E': 458
+    F: 37
+    ' F': 426
+    G: 38
+    ' G': 469
+    H: 39
+    ' H': 462
+    I: 40
+    ' I': 353
+    J: 41
+    ' J': 604
+  multi_token_answers: []
+  cache:
+    block_tokens: null
+    first_ms: 235.96404201816767
+    second_ms: 232.26766695734113
+    cached_tokens: null
+    warm_prefix_tokens: null
+    warm_reuse_tokens: null
+  fanout:
+    concurrency: 4
+    concurrent_ms: 474.8570410301909
+    sequential_ms: 936.5478749969043
+  slots: null
+  probed_at: '2026-11-01T18:43:32+00:00'
+  notes:
+  - backend reports no cached-token count; cache evidence is timing only
+  - 'image part rejected: POST http://path-to-vllm.provider.com/v1/chat/completions
+    returned 400: At most 0 image(s) may be provided in one prompt. (parameter=image)'
+  image_marker: null
+provenance:
+  author: gilwo@null.net
+  created: '2026-11-01'
+  status: probed
+  notes:
+  - 'router model id: qwen38-27b (root /data/models/qwen38-27b per /v1/models); upstream revision not
+    published by the router'
+  - 'kwargs.enable_thinking: false is honoured (probe: template_kwargs_honoured true); the model answers
+    at the first generated token, no thinking preamble'
+  - 'probe proved only top_k and top_k_floor rungs (see probe.rungs); readout.rung: auto uses top_k'
+  scorecards: []

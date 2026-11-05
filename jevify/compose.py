@@ -13,7 +13,7 @@ from jevify.adapters.endpoint.adapter import EndpointBackend
 from jevify.adapters.endpoint.client import OpenAICompatibleClient
 from jevify.domain.engine import Engine
 from jevify.ports.backend import Backend, BackendError
-from jevify.recipes.schema import Recipe
+from jevify.recipes.schema import EndpointSpec, Recipe
 
 
 def build_engine(recipe: Recipe, *, http: Any | None = None) -> Engine:
@@ -27,52 +27,36 @@ def build_app(recipe: Recipe, *, http: Any | None = None, api_key_env: str | Non
     return create_app(build_engine(recipe, http=http), recipe, api_key=api_key)
 
 
+def _endpoint_client(endpoint: EndpointSpec, http: Any | None) -> OpenAICompatibleClient:
+    """The one place an endpoint section becomes an HTTP client, for every endpoint-backed kind."""
+    api_key = os.environ.get(endpoint.api_key_env) if endpoint.api_key_env else None
+    return OpenAICompatibleClient(
+        endpoint.base_url,
+        api_key=api_key,
+        timeout_s=endpoint.timeout_s,
+        extra_body=endpoint.extra_body,
+        headers=endpoint.headers,
+        http=http,
+    )
+
+
 def build_backend(recipe: Recipe, *, http: Any | None = None) -> Backend:
     if recipe.model.kind == "endpoint":
         assert recipe.endpoint is not None  # validated by the schema
-        api_key = (
-            os.environ.get(recipe.endpoint.api_key_env) if recipe.endpoint.api_key_env else None
-        )
-        client = OpenAICompatibleClient(
-            recipe.endpoint.base_url,
-            api_key=api_key,
-            timeout_s=recipe.endpoint.timeout_s,
-            extra_body=recipe.endpoint.extra_body,
-            http=http,
-        )
-        return EndpointBackend(client, recipe)
+        return EndpointBackend(_endpoint_client(recipe.endpoint, http), recipe)
     if recipe.model.kind == "rerank":
         from jevify.adapters.rerank.adapter import RerankBackend
 
         assert recipe.endpoint is not None
-        api_key = (
-            os.environ.get(recipe.endpoint.api_key_env) if recipe.endpoint.api_key_env else None
-        )
-        client = OpenAICompatibleClient(
-            recipe.endpoint.base_url,
-            api_key=api_key,
-            timeout_s=recipe.endpoint.timeout_s,
-            extra_body=recipe.endpoint.extra_body,
-            http=http,
-        )
-        return RerankBackend(client, recipe)
+        return RerankBackend(_endpoint_client(recipe.endpoint, http), recipe)
     if recipe.model.kind == "embedding":
         from jevify.adapters.embedding.adapter import EmbeddingBackend
         from jevify.adapters.embedding.local import LocalEmbedder
 
         if recipe.endpoint is not None:
-            api_key = (
-                os.environ.get(recipe.endpoint.api_key_env) if recipe.endpoint.api_key_env else None
-            )
-            client = OpenAICompatibleClient(
-                recipe.endpoint.base_url,
-                api_key=api_key,
-                timeout_s=recipe.endpoint.timeout_s,
-                extra_body=recipe.endpoint.extra_body,
-                http=http,
-            )
             from jevify.adapters.embedding.adapter import EndpointEmbedder
 
+            client = _endpoint_client(recipe.endpoint, http)
             return EmbeddingBackend(EndpointEmbedder(client, recipe), recipe)
         assert recipe.local is not None
         return EmbeddingBackend(LocalEmbedder(recipe.local), recipe)

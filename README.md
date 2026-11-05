@@ -76,6 +76,10 @@ Every answer carries Jev's fields (`choice`, `confidence`, `probabilities`,
 `score`, `legend`, `noul`) plus an `x_jevify` block naming the readout method,
 the cached tokens, the latency and the recipe hash that produced it.
 
+From a clone, `make ask` and `make serve` wrap the two commands;
+[`docs/playbook.md`](https://github.com/fidecastro/jevify/blob/main/docs/playbook.md)
+walks through them and explains every answer field.
+
 ## How it works
 
 1. **Recipe.** A hashed YAML file: the endpoint, the prompt template (chat
@@ -236,6 +240,8 @@ jevify is written to be operated through a coding agent. Point yours at
 | [`tools/`](https://github.com/fidecastro/jevify/blob/main/tools) | Suite authoring, the Doom recorder and player |
 | [`AGENTS.md`](https://github.com/fidecastro/jevify/blob/main/AGENTS.md) | The engineering principles that bind every change |
 | [`SKILL.md`](https://github.com/fidecastro/jevify/blob/main/SKILL.md) | How an agent operates jevify |
+| [`docs/playbook.md`](https://github.com/fidecastro/jevify/blob/main/docs/playbook.md) | How a person operates jevify: ask, read an answer, serve, add a model, fix common problems |
+| [`Makefile`](https://github.com/fidecastro/jevify/blob/main/Makefile) | `make ask` and `make serve` shortcuts; `make help` lists the variables and recipes |
 
 To work on jevify: `uv sync --group dev` (add `--extra encoder --extra
 games` as needed) and `uv run pytest`. Live and in-process tests skip unless

@@ -196,6 +196,19 @@ def test_extra_body_is_part_of_the_recipe_and_its_hash(tmp_path: Path) -> None:
     assert recipe_hash(load_recipe(plain)) != recipe_hash(load_recipe(extra))
 
 
+def test_endpoint_headers_are_part_of_the_recipe_and_its_hash(tmp_path: Path) -> None:
+    doc = yaml.safe_load((FIXTURES / "fake-vllm.yaml").read_text())
+    plain = tmp_path / "plain.yaml"
+    plain.write_text(yaml.safe_dump(doc))
+    doc["endpoint"]["headers"] = {"x-client-id": "agenticApp"}
+    with_headers = tmp_path / "with_headers.yaml"
+    with_headers.write_text(yaml.safe_dump(doc))
+
+    assert load_recipe(plain).endpoint.headers == {}
+    assert load_recipe(with_headers).endpoint.headers == {"x-client-id": "agenticApp"}
+    assert recipe_hash(load_recipe(plain)) != recipe_hash(load_recipe(with_headers))
+
+
 def test_a_recipe_without_extra_body_keeps_the_hash_it_had_before_the_field_existed() -> None:
     # Scorecards cite recipe hashes; a new optional field must not re-hash old recipes.
     # Literals recorded on the parent commit, before `endpoint.extra_body` was added.
