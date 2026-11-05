@@ -46,7 +46,7 @@ systems. `make help` lists every variable and every recipe.
 Use `make ask`. Give a recipe, a state and at least one question:
 
 ```sh
-make ask RECIPE=recipes/qwen38-27b.vllm.yaml \
+make ask RECIPE=recipes/gemma-4-e4b-it.llamacpp.yaml \
   STATE="Customer: I was charged twice. Fix it today or I cancel." \
   CHOICE="dept:Which team should handle this?=billing,support,sales" \
   SCORE="urgency:How urgent is this?=low,medium,high" \
@@ -55,7 +55,7 @@ make ask RECIPE=recipes/qwen38-27b.vllm.yaml \
 
 | Variable | Format | Example |
 |---|---|---|
-| `RECIPE` | Path to a recipe | `recipes/qwen38-27b.vllm.yaml` |
+| `RECIPE` | Path to a recipe | `recipes/gemma-4-e4b-it.llamacpp.yaml` |
 | `STATE` | The text, or `@path` to read it from a file | `STATE=@ticket.txt` |
 | `CHOICE` | `id:question=option1,option2,...` | `dept:Which team?=billing,support` |
 | `SCORE` | `id:question=level0,level1,...`, lowest level first | `urgency:How urgent?=low,medium,high` |
@@ -72,19 +72,19 @@ Rules:
   flag:
 
   ```sh
-  uv run jevify ask recipes/qwen38-27b.vllm.yaml --state @ticket.txt \
+  uv run jevify ask recipes/gemma-4-e4b-it.llamacpp.yaml --state @ticket.txt \
     --noul "cancel:The customer threatens to cancel." \
     --noul "refund:The customer asks for a refund."
   ```
 
 ## 4. Read the answer
 
-`make ask` prints JSON. This is the answer to the example in step 3,
-shortened:
+`make ask` prints JSON. This is the shape of the answer to the example in
+step 3, shortened; the numbers are illustrative, not a recorded run:
 
 ```json
 {
-  "model": "qwen38-27b",
+  "model": "gemma-4-e4b-it",
   "answers": {
     "dept": {
       "type": "choice",
@@ -152,7 +152,7 @@ shortened:
 Use `make serve`. It serves TypeSafe's Jev API for one recipe:
 
 ```sh
-make serve RECIPE=recipes/qwen38-27b.vllm.yaml
+make serve RECIPE=recipes/gemma-4-e4b-it.llamacpp.yaml
 ```
 
 It listens on `127.0.0.1:8600`. Use `PORT=8601` to pick another port.
@@ -170,7 +170,7 @@ Ask with `curl`. The body is TypeSafe's `system_one` request:
 curl -s -X POST http://127.0.0.1:8600/v1/systemone \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "qwen38-27b",
+    "model": "gemma-4-e4b-it",
     "state": "Customer: I was charged twice. Fix it today or I cancel.",
     "questions": {
       "dept":    {"type": "choice", "instructions": "Which team should handle this?",
@@ -214,7 +214,7 @@ set a key first. Clients must then send it as `Authorization: Bearer <key>`.
 
 ```sh
 export JEVIFY_API_KEY=<a long random value>
-make serve RECIPE=recipes/qwen38-27b.vllm.yaml HOST=0.0.0.0
+make serve RECIPE=recipes/gemma-4-e4b-it.llamacpp.yaml HOST=0.0.0.0
 ```
 
 `make serve` refuses a `HOST` other than `127.0.0.1` when `JEVIFY_API_KEY`
@@ -222,16 +222,30 @@ is not set.
 
 ## 6. Add a new model
 
-jevify works only with a server that returns next-token log-probabilities
-(`logprobs` with `top_logprobs`). vLLM and llama.cpp do. Many hosted APIs and
-proxies do not; for those the probe stops with `no readout is possible`.
+jevify needs a server that returns next-token log-probabilities, in one of
+two ways:
+
+- on the reply token (`logprobs` with `top_logprobs`), as vLLM and llama.cpp
+  do; any recipe works;
+- for the prompt (vLLM's `prompt_logprobs` on `/v1/completions`), as
+  TensorFold's native server does for GLM-5.3-Flash, which refuses the
+  first way; the recipe must use `template.mode: raw`, and the probe proves
+  the `prompt_logprobs` rung.
+
+Many hosted APIs and proxies do neither; for those the probe stops with
+`no readout is possible`.
 
 1. Copy the nearest recipe under `recipes/`.
 2. Set `model.name` to the id the server lists at `/v1/models`.
 3. Set `endpoint.base_url` (it ends in `/v1`).
 4. If the server needs a header, set `endpoint.headers`, for example
-   `{x-client-id: agenticApp}`. Never put a secret there: put the key in an
-   environment variable and name it in `endpoint.api_key_env`.
+   `{x-client-id: agenticApp}`. Never put a secret there: a header whose
+   value is a secret goes in `endpoint.headers_env` as header name to
+   environment variable (`{X-Api-Key: GATEWAY_KEY}`), and a bearer key in the
+   variable that `endpoint.api_key_env` names. A header name that looks like
+   a credential (`key`, `token`, `secret`, `auth`, `cookie`, ...) is refused in
+   `endpoint.headers`.
+   `recipes/qwen38-27b.vllm.yaml` sends a header to a private router.
 5. If the model reasons before it answers, turn reasoning off in
    `template.kwargs`. Try `{enable_thinking: false}` (Qwen3, GLM) or
    `{thinking: false}` (DeepSeek).
@@ -274,7 +288,9 @@ calibrated.
 | You see | Cause | Do this |
 |---|---|---|
 | `missing required header 'x-client-id'` | The server needs a header the recipe does not send. | Add `endpoint.headers: {x-client-id: <your product id>}`. |
-| `no readout is possible on this backend: it returned no logprobs` | The server or proxy hides log-probabilities. | Use a server that returns them (vLLM, llama.cpp). No recipe setting fixes this. |
+| `no readout is possible on this backend: it returned no logprobs` | The server or proxy returns no log-probabilities for the reply token, and the recipe could not read them through `prompt_logprobs`. | If the probe notes `reply-token logprobs refused`, write a raw-mode recipe so it can prove `prompt_logprobs` (step 6). Otherwise use a server that returns them (vLLM, llama.cpp). |
+| `endpoint.headers names X-Api-Key, which looks like a credential` | A secret would be written into the recipe. | Move it to `endpoint.headers_env: {X-Api-Key: <VARIABLE>}` and export the variable. |
+| `endpoint.headers_env sends X-Api-Key from $GATEWAY_KEY, which is not set` | The variable the recipe names is not exported in this shell. | `export GATEWAY_KEY=...`, then run again. |
 | `degraded: true`, options listed in `missing` | The options were not among the model's most likely tokens. Often the model starts to reason instead of answering. | Turn reasoning off (step 6, item 5), then probe again. |
 | `off_menu_mass` close to 1 | The model wants to write something that is not an option. | Same as above. Check the question text too. |
 | A context-limit error, or HTTP 413 from `serve` | The state is longer than the model's context. | Shorten the state. |
