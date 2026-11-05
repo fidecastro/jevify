@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jevify"
-version = "0.1.0"
+version = "0.2.0"
 description = "Make a pretrained model you already have answer typed questions in one pass, and measure how well it does."
 readme = "README.md"
 license = "MIT"
