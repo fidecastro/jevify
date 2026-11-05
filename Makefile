@@ -24,7 +24,7 @@ help:
 	@echo "  HOST other than 127.0.0.1 needs JEVIFY_API_KEY set: clients must then send it as a bearer key."
 	@echo ""
 	@echo "Example:"
-	@echo "  make ask RECIPE=recipes/qwen38-27b.vllm.yaml \\"
+	@echo "  make ask RECIPE=recipes/gemma-4-e4b-it.llamacpp.yaml \\"
 	@echo "    STATE=\"Customer: I was charged twice. Fix it today or I cancel.\" \\"
 	@echo "    CHOICE=\"dept:Which team should handle this?=billing,support,sales\" \\"
 	@echo "    SCORE=\"urgency:How urgent is this?=low,medium,high\" \\"

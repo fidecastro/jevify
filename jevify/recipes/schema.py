@@ -48,9 +48,50 @@ class EndpointSpec(_Strict):
     extra_body: dict[str, Any] = Field(default_factory=dict, exclude_if=lambda v: not v)
     # Static headers sent on every request, e.g. a router's required client/product id.
     # May not set Content-Type or Authorization (api_key_env is the only way to set
-    # Authorization); the client refuses at construction. Left out of the dump when empty
-    # so recipes that predate it keep their hash.
+    # Authorization); the client refuses at construction. A name that looks like a
+    # credential is refused here: the recipe is committed and its hash quoted. Left out of
+    # the dump when empty so recipes that predate it keep their hash.
     headers: dict[str, str] = Field(default_factory=dict, exclude_if=lambda v: not v)
+    # Headers whose values come from the environment: header name -> variable name, read
+    # when the backend is built (an unset variable fails then), never written to the file.
+    headers_env: dict[str, str] = Field(default_factory=dict, exclude_if=lambda v: not v)
+
+    @model_validator(mode="after")
+    def _check_headers(self) -> EndpointSpec:
+        credential = sorted(n for n in self.headers if _looks_like_credential(n))
+        if credential:
+            raise ValueError(
+                f"endpoint.headers names {', '.join(credential)}, which looks like a "
+                "credential; the recipe is committed and hashed, so name the value's "
+                "environment variable in endpoint.headers_env instead (Authorization comes "
+                "only from endpoint.api_key_env)"
+            )
+        both = sorted({n.lower() for n in self.headers} & {n.lower() for n in self.headers_env})
+        if both:
+            raise ValueError(
+                f"{', '.join(both)} is set in both endpoint.headers and endpoint.headers_env"
+            )
+        return self
+
+
+# Header names a static `endpoint.headers` entry may not use because they usually carry a
+# secret. Anti-accident, not anti-adversary: a secret under an innocent name still passes.
+_CREDENTIAL_HEADER_WORDS = (
+    "key",
+    "token",
+    "secret",
+    "password",
+    "passwd",
+    "auth",
+    "cookie",
+    "credential",
+    "session",
+    "signature",
+)
+
+
+def _looks_like_credential(name: str) -> bool:
+    return any(word in name.lower() for word in _CREDENTIAL_HEADER_WORDS)
 
 
 class QuestionTemplates(_Strict):

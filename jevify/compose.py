@@ -30,12 +30,20 @@ def build_app(recipe: Recipe, *, http: Any | None = None, api_key_env: str | Non
 def _endpoint_client(endpoint: EndpointSpec, http: Any | None) -> OpenAICompatibleClient:
     """The one place an endpoint section becomes an HTTP client, for every endpoint-backed kind."""
     api_key = os.environ.get(endpoint.api_key_env) if endpoint.api_key_env else None
+    headers = dict(endpoint.headers)
+    for name, variable in endpoint.headers_env.items():
+        value = os.environ.get(variable)
+        if not value:
+            raise BackendError(
+                f"endpoint.headers_env sends {name} from ${variable}, which is not set"
+            )
+        headers[name] = value
     return OpenAICompatibleClient(
         endpoint.base_url,
         api_key=api_key,
         timeout_s=endpoint.timeout_s,
         extra_body=endpoint.extra_body,
-        headers=endpoint.headers,
+        headers=headers,
         http=http,
     )
 

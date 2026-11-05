@@ -209,6 +209,43 @@ def test_endpoint_headers_are_part_of_the_recipe_and_its_hash(tmp_path: Path) ->
     assert recipe_hash(load_recipe(plain)) != recipe_hash(load_recipe(with_headers))
 
 
+@pytest.mark.parametrize(
+    "name", ["X-Api-Key", "api-key", "Proxy-Authorization", "Cookie", "X-Auth-Token", "x-secret"]
+)
+def test_a_credential_header_is_refused_in_the_recipe(tmp_path: Path, name: str) -> None:
+    # The recipe is committed and its hash quoted, so a static header that looks like a
+    # credential is refused at load, naming headers_env, where the value stays out of the file.
+    doc = yaml.safe_load((FIXTURES / "fake-vllm.yaml").read_text())
+    doc["endpoint"]["headers"] = {name: "s3cr3t"}
+    path = tmp_path / "secret.yaml"
+    path.write_text(yaml.safe_dump(doc))
+    with pytest.raises(RecipeError, match="headers_env"):
+        load_recipe(path)
+
+
+def test_headers_env_names_variables_and_is_part_of_the_hash(tmp_path: Path) -> None:
+    doc = yaml.safe_load((FIXTURES / "fake-vllm.yaml").read_text())
+    plain = tmp_path / "plain.yaml"
+    plain.write_text(yaml.safe_dump(doc))
+    doc["endpoint"]["headers_env"] = {"X-Api-Key": "GATEWAY_KEY"}
+    with_env = tmp_path / "with_env.yaml"
+    with_env.write_text(yaml.safe_dump(doc))
+
+    assert load_recipe(plain).endpoint.headers_env == {}
+    assert load_recipe(with_env).endpoint.headers_env == {"X-Api-Key": "GATEWAY_KEY"}
+    assert recipe_hash(load_recipe(plain)) != recipe_hash(load_recipe(with_env))
+
+
+def test_a_header_named_in_both_headers_and_headers_env_is_refused(tmp_path: Path) -> None:
+    doc = yaml.safe_load((FIXTURES / "fake-vllm.yaml").read_text())
+    doc["endpoint"]["headers"] = {"X-Client-Id": "agenticApp"}
+    doc["endpoint"]["headers_env"] = {"x-client-id": "CLIENT_ID"}
+    path = tmp_path / "both.yaml"
+    path.write_text(yaml.safe_dump(doc))
+    with pytest.raises(RecipeError, match="x-client-id"):
+        load_recipe(path)
+
+
 def test_a_recipe_without_extra_body_keeps_the_hash_it_had_before_the_field_existed() -> None:
     # Scorecards cite recipe hashes; a new optional field must not re-hash old recipes.
     # Literals recorded on the parent commit, before `endpoint.extra_body` was added.
