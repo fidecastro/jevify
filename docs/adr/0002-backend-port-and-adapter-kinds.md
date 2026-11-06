@@ -158,6 +158,28 @@ that request twice and records when the repeat reuses no cached prefix,
 since TensorFold skips its prefix cache for any request with
 `prompt_logprobs` and each question then reads the whole state again.
 
+Amended 2026-11-06, for images on that server: a raw prompt carries no
+image, so the rung above left such a server text-only. TensorFold's
+`/v1/completions` also takes a chat `messages` list, image parts included,
+renders it through the model's template and serves `prompt_logprobs` on it
+(its GLM prefill encodes the images and records the prompt rows in one
+pass). In messages mode the rung therefore sends the readout there, with the
+answer spelling as the assistant's reply. The template always appends its
+generation prompt, so the answer's row is not the last: the probe sends the
+reply twice with two different answers, requires the rows to differ in
+exactly one position that holds each answer, and records the rows after it
+as `prompt_rows_after_answer`. A search for the answer's token from the end
+was rejected, because it can find the same word in the question. Each
+readout reads that row and refuses one that does not hold the appended
+answer, naming a re-probe: a template that renders differently later (thinking
+switched) fails loudly instead of being read at the wrong position. When the
+strongest proven rung reads prompt rows, the warm request and the probe's
+cache, fan-out and image measurements take the same route, so the image is
+proven where questions will send it and a server that refuses reply-token
+logprobs on the chat route never gets one. A server that takes no `messages`
+on `/v1/completions` (vLLM) leaves the rung unproven for a chat recipe, as
+before.
+
 ### D5 — Choice questions on decoders
 
 Options are labeled with single-token identifiers and the distribution is

@@ -59,9 +59,11 @@ that model and writes what it found into the file. vLLM and llama.cpp get
 their dialect extras; any other server is driven through the plain OpenAI
 surface. A server that refuses logprobs on the reply token but returns
 vLLM's `prompt_logprobs`, such as TensorFold's native server with
-GLM-5.3-Flash, is read through the `prompt_logprobs` rung, which needs a
-raw-mode recipe (the template written out with the model's own control
-tokens, served on `/v1/completions`).
+GLM-5.3-Flash, is read through the `prompt_logprobs` rung on
+`/v1/completions`: with a raw-mode recipe (the template written out with the
+model's own control tokens), or with a chat-template recipe where the server
+also takes `messages` on that route, as TensorFold's does. The chat form is
+the one that carries images.
 
 `serve` binds to `127.0.0.1`. To reach it from other machines pass
 `--host 0.0.0.0`, and set `JEVIFY_API_KEY` first so that every request must
@@ -257,12 +259,12 @@ dies before the armour, so the corridor needs a policy with memory, not
 better perception); the rerank kind and the
 embedding route against a live server; a marker-slot encoder layout; the
 grammar rung on the PrismML llama.cpp fork, which accepts a grammar without
-constraining the reported probabilities; the `prompt_logprobs` rung against a
-live server (written for TensorFold's native server with GLM-5.3-Flash, run
-only against the fake server in `tests/` so far; a server that skips its
-prefix cache for such requests, as TensorFold's source shows it does, makes
-every question read the whole state again, which the probe measures and
-notes); Windows. Choice menus on the endpoint kind are bounded by the
+constraining the reported probabilities; the `prompt_logprobs` rung on any
+server but TensorFold's native one with GLM-5.3-Flash, where it has been
+probed and asked by hand (raw and chat recipes, text and images) but no
+evaluation suite has been scored on it yet (that server skips its prefix
+cache for such requests, so every question reads the whole state again,
+images included, which the probe measures and notes); Windows. Choice menus on the endpoint kind are bounded by the
 single-token identifier alphabet the probe verifies (26 on the DeepSeek
 recipe); Jev's 255-option ceiling is not reachable there.
 

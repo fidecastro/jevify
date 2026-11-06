@@ -22,10 +22,17 @@ from jevify.adapters.endpoint.dialects import (
     grammar_for,
     neutral_samplers,
     parse_response,
+    prompt_tokens_held,
 )
-from jevify.adapters.endpoint.readout import PromptLogprobsRung, matches, read_answer_set
+from jevify.adapters.endpoint.readout import (
+    RUNGS,
+    PromptLogprobsRung,
+    matches,
+    read_answer_set,
+)
 from jevify.domain.questions import NoulQuestion, State
 from jevify.ports.backend import (
+    RUNG_RANK,
     BackendError,
     CacheEvidence,
     Capabilities,
@@ -86,6 +93,11 @@ class Prober:
         # whether the backend gives reply-token logprobs; the probe's own usage and timing
         # requests ask for them only where they are served
         self.reply_logprobs = True
+        # whether the strongest proven rung reads prompt rows: the probe's later requests
+        # (cache, fan-out, images) then take that rung's route, the one questions will take
+        self.prompt_rows = False
+        # messages mode on the prompt_logprobs rung: rows after the appended answer
+        self.rows_after_answer: int | None = None
 
     async def run(self) -> Capabilities:
         assert self.recipe.endpoint is not None
@@ -132,6 +144,7 @@ class Prober:
                 "no readout is possible on this backend: it returned no logprobs, "
                 "neither for a reply token nor through prompt_logprobs"
             )
+        self.prompt_rows = RUNGS[next(r for r in RUNG_RANK if r in rungs)].reads_prompt_rows
         prefill = await self._prefill_honored(dialect) if prefix.mode == "messages" else None
         cache = await self._cache(state, dialect)
         slots = await self._slots(dialect)
@@ -155,6 +168,7 @@ class Prober:
             prefill_honored=prefill,
             template_kwargs_honored=kwargs_honored,
             image_marker=self.image_marker,
+            prompt_rows_after_answer=self.rows_after_answer,
             token_ids_verified=verified,
             answer_tokens=answer_tokens,
             multi_token_answers=tuple(multi),
@@ -292,6 +306,13 @@ class Prober:
         return any(rendered.find(c, last_open) >= 0 for c in closes)
 
     # ------------------------------------------------------------------ readout checks
+    def _request(
+        self, prefix, suffix: str, dialect: Dialect, recipe: Recipe | None = None
+    ) -> tuple[str, dict[str, Any]]:
+        """A probe measurement's request on the route the questions will take."""
+        model = (recipe or self.recipe).model.name
+        return base_request(model, prefix, suffix, dialect, prompt_rows=self.prompt_rows)
+
     def _usage_request(self, body: dict[str, Any]) -> None:
         """Shape a probe request that needs only usage or timing: one reply-token logprob where
         the backend serves them (the existing measurements were taken that way), none where it
@@ -325,22 +346,32 @@ class Prober:
         return parsed
 
     async def _prompt_logprobs_honoured(self, prefix, part: RenderedPart, dialect: Dialect) -> bool:
-        """Append the probe question's first answer spelling to the raw prompt and ask for
-        prompt_logprobs: proven when the last prompt row holds exactly that token. The request
+        """Append the probe question's first answer spelling to the prompt and ask for
+        prompt_logprobs: proven when the answer's row holds exactly that token. The request
         is sent twice, and a repeat that reuses no cached prefix is recorded, since every
         question then reads the whole state again."""
-        path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
+        path, body = base_request(
+            self.recipe.model.name, prefix, part.text, dialect, prompt_rows=True
+        )
         if path != "completions":
-            return False  # the rung reads raw prompts on /v1/completions only
+            return False  # llama.cpp's native route (raw-mode images) lists no prompt rows
         token = part.tokens[part.labels[0]][0]
         PromptLogprobsRung.shape(body, part, self.recipe.readout.top_k, dialect, token)
         try:
-            first = parse_response(path, await self.client.post_v1(path, body), dialect)
+            response = await self.client.post_v1(path, body)
         except BackendError as exc:
             if exc.status != 400:
                 raise
             self.notes.append(f"prompt_logprobs refused: {exc}")
             return False
+        if "messages" in body:
+            after = await self._rows_after_answer(prefix, part, dialect, token, response)
+            if after is None:
+                return False
+            self.rows_after_answer = after
+        first = parse_response(
+            path, response, dialect, answer_row=-1 - (self.rows_after_answer or 0)
+        )
         if first.prompt_token is None:
             return False  # the field was ignored (llama.cpp) or the server lists no such rows
         if not matches(first.prompt_token, token):
@@ -358,6 +389,42 @@ class Prober:
                 "state again"
             )
         return True
+
+    async def _rows_after_answer(
+        self, prefix, part: RenderedPart, dialect: Dialect, token: Token, response: dict
+    ) -> int | None:
+        """Where the answer sent as the assistant's reply sits among the prompt rows. The
+        same request with a second label's spelling instead must differ in exactly one row,
+        holding each answer: that row is the answer's, and the rows after it are the
+        template's next generation prompt. A search for the answer's token alone could find
+        the same word in the question."""
+        other = part.tokens[part.labels[1]][0]
+        path, body = base_request(
+            self.recipe.model.name, prefix, part.text, dialect, prompt_rows=True
+        )
+        PromptLogprobsRung.shape(body, part, self.recipe.readout.top_k, dialect, other)
+        first = prompt_tokens_held(response)
+        second = prompt_tokens_held(await self.client.post_v1(path, body))
+        differ = [
+            i
+            for i, (a, b) in enumerate(zip(first, second, strict=False))
+            if a is not None and b is not None and (a.id, a.text) != (b.id, b.text)
+        ]
+        if (
+            not first
+            or len(first) != len(second)
+            or len(differ) != 1
+            or not matches(first[differ[0]], token)
+            or not matches(second[differ[0]], other)
+        ):
+            self.notes.append(
+                f"prompt_logprobs on /v1/completions with messages: the answers {token.text!r} "
+                f"and {other.text!r} sent as the assistant's reply did not each come back as "
+                "one prompt row of their own, so the prompt_logprobs rung is not proven for "
+                "this recipe"
+            )
+            return None
+        return len(first) - 1 - differ[0]
 
     async def _named_token_logprobs(self, prefix, part, dialect, answer_tokens) -> bool:
         if dialect is not Dialect.VLLM or not answer_tokens:
@@ -509,7 +576,7 @@ class Prober:
                 part = render_question(
                     recipe, NoulQuestion(id="image", instructions="The image is blank.")
                 ).parts[0]
-                path, body = base_request(recipe.model.name, prefix, part.text, dialect)
+                path, body = self._request(prefix, part.text, dialect, recipe)
             except ValueError as exc:
                 self.notes.append(f"images not sendable with this recipe: {exc}")
                 return False
@@ -553,7 +620,7 @@ class Prober:
         width = 4 if slots is None else max(1, min(4, slots))
 
         def request(slot: int | None):
-            path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
+            path, body = self._request(prefix, part.text, dialect)
             self._usage_request(body)
             if slot is not None:
                 body["id_slot"] = slot
@@ -587,7 +654,7 @@ class Prober:
             part = render_question(
                 self.recipe, NoulQuestion(id="cache", instructions="cache probe")
             ).parts[0]
-            path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
+            path, body = self._request(prefix, part.text, dialect)
             self._usage_request(body)
             t0 = self.clock()
             first = parse_response(path, await self.client.post_v1(path, body), dialect)
@@ -631,14 +698,14 @@ class Prober:
         recurrent model on llama.cpp can then resume nothing (it resumes from checkpoints at
         the end of earlier prompts), while a KV-cache model still reuses the shared tokens."""
         prefix = render_prefix(self.recipe, state)
-        path, body = base_request(self.recipe.model.name, prefix, "", dialect)
+        path, body = self._request(prefix, "", dialect)
         self._usage_request(body)
         post = self.client.post_root if path == "completion" else self.client.post_v1
         warm = parse_response(path, await post(path, body), dialect)
         part = render_question(
             self.recipe, NoulQuestion(id="reuse", instructions="warm reuse probe")
         ).parts[0]
-        path, body = base_request(self.recipe.model.name, prefix, part.text, dialect)
+        path, body = self._request(prefix, part.text, dialect)
         self._usage_request(body)
         question = parse_response(path, await post(path, body), dialect)
         if warm.prompt_tokens is None or question.cached_tokens is None:

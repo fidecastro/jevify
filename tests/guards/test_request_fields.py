@@ -55,6 +55,20 @@ RUNS = [
         ALL,
     ),
     (
+        Behaviour(
+            dialect="generic",
+            reply_logprobs=False,
+            prompt_logprobs=True,
+            prompt_logprobs_reuse=False,
+            completions_messages=True,
+            multimodal=True,
+            scores=RAW_SCORES,
+        ),
+        "fake-tensorfold-messages.yaml",
+        "generic",
+        ALL,
+    ),
+    (
         Behaviour(dialect="llamacpp", rerank_scores={"x": 0.5}),
         "fake-rerank.yaml",
         "auto",

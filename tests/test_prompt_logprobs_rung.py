@@ -147,13 +147,3 @@ def test_refuses_an_answer_that_merges_with_the_prompt_tail(fixtures, fake_serve
     backend = build_backend(recipe.model_copy(update={"template": template}), http=http)
     with pytest.raises(BackendError, match="own prompt token"):
         run(backend.evaluate(run(backend.warm(STATE)), [Q]))
-
-
-def test_a_messages_mode_recipe_cannot_pin_the_rung(fixtures, fake_server_factory):
-    server, http = fake_server_factory(Behaviour(scores={" yes": 0.0, " no": -1.0}))
-    recipe = recipe_with(
-        fixtures, ["prompt_logprobs"], rung="prompt_logprobs", name="fake-vllm.yaml"
-    )
-    backend = build_backend(recipe, http=http)
-    with pytest.raises(BackendError, match="raw-mode prompt"):
-        run(backend.evaluate(run(backend.warm(STATE)), [Q]))
