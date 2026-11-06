@@ -77,6 +77,8 @@ class MissingLabelsError(BackendError):
 class OneRequestRung:
     """A rung that reads the answer slot with one request: shape the body, send it."""
 
+    reads_prompt_rows = False  # it reads the reply's first token, not prompt rows
+
     @staticmethod
     def shape(body: dict[str, Any], part: RenderedPart, top_k: int, dialect: Dialect) -> None:
         raise NotImplementedError
@@ -266,16 +268,22 @@ def _same(a: Entry, b: Entry) -> bool:
 
 
 class PromptLogprobsRung:
-    """Rung 4: append an answer token to a raw prompt and read the row vLLM's
+    """Rung 4: append an answer token to the prompt and read the row vLLM's
     `prompt_logprobs` gives for that position: the token's exact logprob and the top-k beside
     it, all from the one distribution at the answer slot. A spelling the rows have not shown
     is appended in a request of its own, so every label is exact and off-menu mass visible.
+
+    A raw prompt gets the answer at its end. A messages-mode request goes to /v1/completions
+    with the answer as the assistant's reply (the route on which TensorFold's native server
+    carries images); the template opens a new turn after it, so the answer's row is the one
+    the probe measured, and the token it holds is checked on every request.
 
     For servers that give no reply-token logprobs (TensorFold's native server with
     GLM-5.3-Flash). Such a server may also skip its prefix cache for these requests, which the
     probe measures and records: each request then reads the whole state again."""
 
     rung = Rung.PROMPT_LOGPROBS
+    reads_prompt_rows = True
 
     @staticmethod
     def available(capabilities: Capabilities | None) -> bool:
@@ -285,12 +293,19 @@ class PromptLogprobsRung:
     def shape(
         body: dict[str, Any], part: RenderedPart, top_k: int, dialect: Dialect, append: Token
     ) -> None:
-        if not isinstance(body.get("prompt"), str):
+        if isinstance(body.get("prompt"), str):
+            body["prompt"] += append.text
+        elif isinstance(body.get("messages"), list):
+            messages = body["messages"]
+            if messages[-1]["role"] == "assistant":  # the recipe's prefill
+                messages[-1] = {**messages[-1], "content": messages[-1]["content"] + append.text}
+            else:
+                messages.append({"role": "assistant", "content": append.text})
+        else:
             raise BackendError(
-                "the prompt_logprobs rung reads a raw-mode prompt on /v1/completions; "
-                "this recipe renders chat messages (or images on llama.cpp's native route)"
+                "the prompt_logprobs rung reads /v1/completions prompts; raw-mode images on "
+                "llama.cpp's native route have no prompt rows"
             )
-        body["prompt"] += append.text
         body["prompt_logprobs"] = min(top_k, PROMPT_LOGPROBS_CAP)
         body.pop("logprobs", None)
 
@@ -312,11 +327,19 @@ class PromptLogprobsRung:
             parsed = await send(request)
             held = parsed.prompt_token
             if held is None or not matches(held, token):
+                found = held.text if held else None
+                if "messages" in request:
+                    raise BackendError(
+                        f"the answer {token.text!r} sent as the assistant's reply is not at the "
+                        f"prompt row the probe measured (that row holds {found!r}); the "
+                        "server's template renders differently since (thinking switched?): "
+                        "re-run the probe"
+                    )
                 raise BackendError(
                     f"the answer {token.text!r} appended to the prompt did not come back as its "
-                    f"own prompt token (the last prompt row holds "
-                    f"{held.text if held else None!r}); it fuses with the template's tail, so "
-                    "end the raw template where the answer starts a token of its own"
+                    f"own prompt token (the last prompt row holds {found!r}); it fuses with "
+                    "the template's tail, so end the raw template where the answer starts a "
+                    "token of its own"
                 )
             entries.extend(e for e in parsed.entries if not any(_same(e, f) for f in entries))
             if parsed.prompt_tokens is not None:

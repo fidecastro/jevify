@@ -86,6 +86,9 @@ class Capabilities:
     notes: tuple[str, ...] = ()
     # the server's media marker for raw-mode images (llama.cpp randomizes it per process)
     image_marker: str | None = None
+    # messages mode on the prompt_logprobs rung: the prompt rows the server's template adds
+    # after the answer appended as the assistant's reply (its next generation prompt)
+    prompt_rows_after_answer: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """A plain, YAML-friendly record for the recipe's `probe` section."""

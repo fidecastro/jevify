@@ -25,7 +25,7 @@ from jevify.ports.backend import (
     Rung,
     StateHandle,
 )
-from jevify.recipes.render import render_prefix, render_question
+from jevify.recipes.render import RenderedPart, render_prefix, render_question
 from jevify.recipes.schema import Recipe
 
 Clock = Callable[[], float]
@@ -92,8 +92,12 @@ class EndpointBackend:
         slots = tuple(range(min(self.concurrency, self.slots))) if self.slots else ()
         started = self.clock()
         cached: int | None = None
+        # the route the questions will take, so a server that refuses one never sees it
+        prompt_rows = self._reads_prompt_rows()
         for slot in slots or (None,):
-            path, body = base_request(self.recipe.model.name, prefix, "", self.dialect)
+            path, body = base_request(
+                self.recipe.model.name, prefix, "", self.dialect, prompt_rows=prompt_rows
+            )
             if slot is not None:
                 body["id_slot"] = slot
             post = self.client.post_root if path == "completion" else self.client.post_v1
@@ -129,6 +133,35 @@ class EndpointBackend:
             return [strongest]
         proven = Capabilities.from_dict(self.recipe.probe).rungs if self.recipe.probe else set()
         return [r for r in RUNG_RANK if r in proven and r in RUNGS]
+
+    def _reads_prompt_rows(self) -> bool:
+        """Whether the strongest rung reads prompt rows; False before a probe on auto."""
+        if self.recipe.readout.rung == "auto" and not self.recipe.probe:
+            return False
+        return RUNGS[self._resolve_rung()].reads_prompt_rows
+
+    def _readout_request(
+        self, handle: StateHandle, part: RenderedPart, impl: Any, slot: int | None, tally: _Tally
+    ) -> tuple[str, dict[str, Any], Send]:
+        """The one way a question's readout request is built: the rung's route, and the
+        sender that reads the answer's row where the rung reads prompt rows."""
+        path, body = base_request(
+            self.recipe.model.name,
+            handle.prefix,
+            part.text,
+            self.dialect,
+            prompt_rows=impl.reads_prompt_rows,
+        )
+        answer_row = -1
+        if impl.reads_prompt_rows and handle.prefix.mode == "messages":
+            after = self.capabilities.prompt_rows_after_answer if self.capabilities else None
+            if after is None:
+                raise BackendError(
+                    "the prompt_logprobs rung in messages mode reads the row the probe "
+                    "measured (probe.prompt_rows_after_answer); run `jevify probe <recipe>`"
+                )
+            answer_row = -1 - after
+        return path, body, self._sender(path, slot, tally, answer_row)
 
     def _resolve_rung(self) -> Rung:
         pinned = self.recipe.readout.rung
@@ -189,11 +222,9 @@ class EndpointBackend:
         raw_parts = []
         for order in orders:
             part = render_question(self.recipe, question, order=order).parts[0]
-            path, body = base_request(
-                self.recipe.model.name, handle.prefix, part.text, self.dialect
-            )
+            path, body, send = self._readout_request(handle, part, impl, slot, tally)
             parsed = await impl.collect(
-                self._sender(path, slot, tally),
+                send,
                 body,
                 part,
                 self.recipe.readout.top_k,
@@ -232,7 +263,7 @@ class EndpointBackend:
             raw={"parts": raw_parts},
         )
 
-    def _sender(self, path: str, slot: int | None, tally: _Tally) -> Send:
+    def _sender(self, path: str, slot: int | None, tally: _Tally, answer_row: int) -> Send:
         """The one way a readout request goes out: pinned to its slot, timed, counted."""
         post = self.client.post_root if path == "completion" else self.client.post_v1
 
@@ -243,7 +274,7 @@ class EndpointBackend:
             response = await post(path, body)
             tally.latency_ms += (self.clock() - started) * 1000.0
             tally.calls += 1
-            return parse_response(path, response, self.dialect)
+            return parse_response(path, response, self.dialect, answer_row=answer_row)
 
         return send
 
@@ -263,11 +294,9 @@ class EndpointBackend:
         cached_tokens: int | None = None
         raw_parts = []
         for part in rendered.parts:
-            path, body = base_request(
-                self.recipe.model.name, handle.prefix, part.text, self.dialect
-            )
+            path, body, send = self._readout_request(handle, part, impl, slot, tally)
             parsed = await impl.collect(
-                self._sender(path, slot, tally),
+                send,
                 body,
                 part,
                 self.recipe.readout.top_k,

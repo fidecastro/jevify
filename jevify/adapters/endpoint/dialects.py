@@ -34,12 +34,16 @@ class Parsed:
 
 
 def base_request(
-    model: str, prefix: RenderedPrefix, suffix: str, dialect: Dialect
+    model: str, prefix: RenderedPrefix, suffix: str, dialect: Dialect, *, prompt_rows: bool = False
 ) -> tuple[str, dict[str, Any]]:
     """The readout request every rung starts from: one token, no sampling, logprobs on.
 
     Returns the route key and the body: "chat/completions" and "completions" live under
     /v1; "completion" is llama.cpp's native root route, used for raw multimodal input.
+
+    `prompt_rows`: the readout reads prompt rows, not the reply (the prompt_logprobs rung).
+    A messages-mode body then goes to /v1/completions, where TensorFold's native server takes
+    a chat `messages` list and serves `prompt_logprobs`, and asks for no reply logprobs.
     """
     if prefix.mode == "raw":
         if prefix.images:
@@ -87,13 +91,17 @@ def base_request(
         "stream": False,
         "logprobs": True,
     }
+    if prompt_rows:
+        del body["logprobs"]
     if prefix.prefill:
+        # on prompt rows the answer is appended to this message (the rung's shape)
         messages.append({"role": "assistant", "content": prefix.prefill})
-        body["continue_final_message"] = True
-        body["add_generation_prompt"] = False
+        if not prompt_rows:
+            body["continue_final_message"] = True
+            body["add_generation_prompt"] = False
     if prefix.kwargs and dialect is not Dialect.GENERIC:
         body["chat_template_kwargs"] = dict(prefix.kwargs)
-    return "chat/completions", body
+    return ("completions" if prompt_rows else "chat/completions"), body
 
 
 def _base64_payload(data_uri: str) -> str:
@@ -113,7 +121,11 @@ def grammar_for(texts: list[str]) -> str:
     return f"root ::= {escaped}"
 
 
-def parse_response(path: str, response: dict[str, Any], dialect: Dialect) -> Parsed:
+def parse_response(
+    path: str, response: dict[str, Any], dialect: Dialect, *, answer_row: int = -1
+) -> Parsed:
+    """`answer_row`: which prompt_logprobs row is the answer's, counted from the end (-1: the
+    last, a raw prompt; earlier where the template adds rows after an assistant reply)."""
     entries: list[Entry] = []
     if path == "completion":
         # llama.cpp native route: completion_probabilities plus top-level counters.
@@ -131,16 +143,10 @@ def parse_response(path: str, response: dict[str, Any], dialect: Dialect) -> Par
     usage = response.get("usage") or {}
     details = usage.get("prompt_tokens_details") or {}
     rows = choice.get("prompt_logprobs")
-    if isinstance(rows, list) and rows and isinstance(rows[-1], dict):
+    if isinstance(rows, list) and len(rows) >= -answer_row and isinstance(rows[answer_row], dict):
         # vLLM's prompt_logprobs (TensorFold writes the same): null, then one {id: {logprob,
-        # rank, decoded_token}} row a prompt token, the prompt's own token listed first. The
-        # last row is the position of the last prompt token.
-        row = [
-            Entry(
-                text=str(item.get("decoded_token", "")), logprob=float(item["logprob"]), id=int(key)
-            )
-            for key, item in rows[-1].items()
-        ]
+        # rank, decoded_token}} row a prompt token, the prompt's own token listed first.
+        row = _row_entries(rows[answer_row])
         return Parsed(
             entries=tuple(row),
             prompt_tokens=usage.get("prompt_tokens"),
@@ -168,6 +174,26 @@ def parse_response(path: str, response: dict[str, Any], dialect: Dialect) -> Par
         cached_tokens=cached,
         completion_tokens=usage.get("completion_tokens"),
     )
+
+
+def _row_entries(row: dict[str, Any]) -> list[Entry]:
+    return [
+        Entry(text=str(item.get("decoded_token", "")), logprob=float(item["logprob"]), id=int(key))
+        for key, item in row.items()
+    ]
+
+
+def prompt_tokens_held(response: dict[str, Any]) -> tuple[Entry | None, ...]:
+    """Each prompt_logprobs row's own token (its first entry), None for the first row: the
+    prompt as the server tokenized it. Empty when the response lists no prompt rows."""
+    rows = response["choices"][0].get("prompt_logprobs")
+    if not isinstance(rows, list):
+        return ()
+    held: list[Entry | None] = []
+    for row in rows:
+        entries = _row_entries(row) if isinstance(row, dict) and row else []
+        held.append(entries[0] if entries else None)
+    return tuple(held)
 
 
 def _entry_from(item: dict[str, Any], dialect: Dialect) -> Entry:

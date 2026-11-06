@@ -81,7 +81,9 @@ headers, headers_env}`, `template` and `answers`.
   own control tokens; use it when the chat template would not put the model
   in its trained regime (the Qwen3-VL reranker recipe is the example), and
   for a server that refuses reply-token logprobs (TensorFold's native server
-  with GLM-5.3-Flash): only a raw prompt can carry the `prompt_logprobs` rung.
+  with GLM-5.3-Flash) when the state is text. The `prompt_logprobs` rung also
+  reads a messages-mode recipe where the server takes `messages` on
+  `/v1/completions` (TensorFold's does); that is the form that carries images.
 - `template.questions.choice_strategy`: `identifiers` (one request, options
   labelled A, B, C) or `per_option` (one yes/no request per option; needed
   for a model that never emits letters, such as a reranker).
@@ -90,7 +92,8 @@ headers, headers_env}`, `template` and `answers`.
 - `readout.rung: auto` walks the rungs the probe proved, strongest first:
   `named_token_logprobs` (vLLM with `logprob_token_ids`), `grammar`
   (llama.cpp), `top_k`, `prompt_logprobs` (each answer spelling appended to
-  a raw prompt and read back from vLLM-style `prompt_logprobs` rows, one
+  a raw prompt, or sent as the assistant's reply in messages mode, and read
+  back from vLLM-style `prompt_logprobs` rows, one
   request more for every spelling the rows did not show; exact, off-menu mass
   visible), `equal_bias`, `top_k_floor` (degraded, missing labels floored and
   listed). A rung that cannot see every label hands the
@@ -167,9 +170,13 @@ TypeSafe's published thresholds refer to. Everything jevify adds is under
   user turn right after the state. Use `template.mode: raw` so the warm prompt
   ends at the state boundary; the Bonsai recipe is the example.
 - **Probe notes "reply-token logprobs refused"**: the server gives no
-  logprobs on a generated token (TensorFold with GLM-5.3-Flash). Write a raw
-  recipe so the probe can prove `prompt_logprobs`; with a chat recipe the
-  probe ends in "no readout is possible".
+  logprobs on a generated token (TensorFold with GLM-5.3-Flash). The probe
+  then tries `prompt_logprobs`: a raw recipe on any such server, a chat
+  recipe where the server takes `messages` on `/v1/completions`; elsewhere a
+  chat recipe ends in "no readout is possible".
+- **"is not at the prompt row the probe measured"**: in messages mode the
+  server's template renders the answer turn differently than when the probe
+  ran (thinking switched on or off, a new template); re-run the probe.
 - **"did not come back as its own prompt token"**: the appended answer fuses
   with the end of the raw template; end the template where the answer starts
   a token of its own (after a newline, or before a leading-space spelling).

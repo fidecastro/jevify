@@ -229,8 +229,10 @@ two ways:
   do; any recipe works;
 - for the prompt (vLLM's `prompt_logprobs` on `/v1/completions`), as
   TensorFold's native server does for GLM-5.3-Flash, which refuses the
-  first way; the recipe must use `template.mode: raw`, and the probe proves
-  the `prompt_logprobs` rung.
+  first way; the probe proves the `prompt_logprobs` rung. A raw-mode recipe
+  works on any such server. A chat-template recipe works where the server
+  also takes a chat `messages` list on `/v1/completions` (TensorFold's does),
+  and is the one that can send images there.
 
 Many hosted APIs and proxies do neither; for those the probe stops with
 `no readout is possible`.
@@ -288,7 +290,7 @@ calibrated.
 | You see | Cause | Do this |
 |---|---|---|
 | `missing required header 'x-client-id'` | The server needs a header the recipe does not send. | Add `endpoint.headers: {x-client-id: <your product id>}`. |
-| `no readout is possible on this backend: it returned no logprobs` | The server or proxy returns no log-probabilities for the reply token, and the recipe could not read them through `prompt_logprobs`. | If the probe notes `reply-token logprobs refused`, write a raw-mode recipe so it can prove `prompt_logprobs` (step 6). Otherwise use a server that returns them (vLLM, llama.cpp). |
+| `no readout is possible on this backend: it returned no logprobs` | The server or proxy returns no log-probabilities for the reply token, and the recipe could not read them through `prompt_logprobs`. | If the probe notes `reply-token logprobs refused`, write a raw-mode recipe so it can prove `prompt_logprobs` (step 6); a chat-template recipe proves it only where the server takes `messages` on `/v1/completions`. Otherwise use a server that returns them (vLLM, llama.cpp). |
 | `endpoint.headers names X-Api-Key, which looks like a credential` | A secret would be written into the recipe. | Move it to `endpoint.headers_env: {X-Api-Key: <VARIABLE>}` and export the variable. |
 | `endpoint.headers_env sends X-Api-Key from $GATEWAY_KEY, which is not set` | The variable the recipe names is not exported in this shell. | `export GATEWAY_KEY=...`, then run again. |
 | `degraded: true`, options listed in `missing` | The options were not among the model's most likely tokens. Often the model starts to reason instead of answering. | Turn reasoning off (step 6, item 5), then probe again. |

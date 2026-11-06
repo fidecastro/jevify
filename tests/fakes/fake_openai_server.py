@@ -75,6 +75,10 @@ class Behaviour:
     # False: a prompt_logprobs request reuses no cached prefix (TensorFold runs the head over
     # every prompt row, so it skips the prefix cache for such requests)
     prompt_logprobs_reuse: bool = True
+    # TensorFold's /v1/completions also takes a chat `messages` list, rendered through the
+    # template with its generation prompt always appended: an assistant message at the end is
+    # followed by a new assistant turn. Off: a body without `prompt` is a 400, as on vLLM.
+    completions_messages: bool = False
 
 
 class FakeTokenizer:
@@ -238,13 +242,7 @@ class FakeOpenAIServer:
             if isinstance(content, list):
                 content = "".join(p.get("text", "<image>") for p in content)
             parts.append(f"<|{message['role']}|>{content}")
-        kwargs = body.get("chat_template_kwargs") or {}
-        thinking_on = self.behaviour.thinking_default_on
-        if self.behaviour.thinking_kwarg and kwargs.get(self.behaviour.thinking_kwarg) is False:
-            thinking_on = False
-        off_field = self.behaviour.thinking_off_field
-        if off_field and body.get(off_field[0]) == off_field[1]:
-            thinking_on = False
+        thinking_on = self._thinking_on(body)
         last = body["messages"][-1]
         if last["role"] == "assistant" and body.get("continue_final_message"):
             if self.behaviour.prefill == "eos_appended":
@@ -257,6 +255,63 @@ class FakeOpenAIServer:
         else:
             parts.append("<|assistant|>")
         return "".join(parts)
+
+    def _thinking_on(self, body: dict[str, Any]) -> bool:
+        kwargs = body.get("chat_template_kwargs") or {}
+        thinking_on = self.behaviour.thinking_default_on
+        if self.behaviour.thinking_kwarg and kwargs.get(self.behaviour.thinking_kwarg) is False:
+            thinking_on = False
+        off_field = self.behaviour.thinking_off_field
+        if off_field and body.get(off_field[0]) == off_field[1]:
+            thinking_on = False
+        return thinking_on
+
+    def _message_pieces(self, body: dict[str, Any]) -> list[str]:
+        """TensorFold's rendering of a `messages` body on /v1/completions, as pieces: a role
+        marker a message, its content (an image is one `<image>` piece here; the image's own
+        tokens are counted in usage), then the generation prompt, always."""
+        pieces: list[str] = []
+        for message in body["messages"]:
+            pieces.append(f"<|{message['role']}|>")
+            content = message["content"]
+            parts = content if isinstance(content, list) else [{"type": "text", "text": content}]
+            for part in parts:
+                if part.get("type") == "image_url":
+                    pieces.append("<image>")
+                else:
+                    pieces.extend(self.tokenizer.pieces(part["text"]))
+        pieces.append("<|assistant|>")
+        if self._thinking_on(body):
+            pieces.append(THINK_OPEN)
+        return pieces
+
+    def _message_rows(self, pieces: list[str], body: dict[str, Any]) -> list[Any]:
+        """prompt_logprobs over rendered pieces: every row is the "model" at that position,
+        the piece itself first, then the top-k beside it."""
+        rows: list[Any] = [None]
+        for i in range(1, len(pieces)):
+            rows.append(self._row("".join(pieces[:i]), pieces[i], body))
+        return rows
+
+    def _row(self, before: str, piece: str, body: dict[str, Any]) -> dict[str, Any]:
+        logprobs = self._distribution(before, {})
+        ranked = sorted(logprobs.items(), key=lambda kv: kv[1], reverse=True)
+        rank = {text: i + 1 for i, (text, _) in enumerate(ranked)}
+        row = {
+            str(self.tokenizer.id_of(piece)): {
+                "logprob": logprobs.get(piece, -20.0),
+                "rank": rank.get(piece, len(ranked) + 1),
+                "decoded_token": piece,
+            }
+        }
+        for text, lp in ranked[: min(int(body["prompt_logprobs"]), self.behaviour.top_k_cap)]:
+            if text != piece:
+                row[str(self.tokenizer.id_of(text))] = {
+                    "logprob": lp,
+                    "rank": rank[text],
+                    "decoded_token": text,
+                }
+        return row
 
     async def _cache_and_usage(
         self, prompt: str, body: dict[str, Any], image_tokens: int = 0
@@ -327,31 +382,13 @@ class FakeOpenAIServer:
         """vLLM's prompt_logprobs: null, then a row a prompt token. Only the last row is the
         "model": the distribution before the last piece, the piece itself first, then the
         top-k beside it. Earlier rows hold just their own token."""
-        b = self.behaviour
         pieces = self.tokenizer.pieces(prompt)
         rows: list[Any] = [None]
         for piece in pieces[1:-1]:
             ident = str(self.tokenizer.id_of(piece))
             rows.append({ident: {"logprob": -1.0, "rank": 1, "decoded_token": piece}})
         last = pieces[-1]
-        logprobs = self._distribution(prompt[: len(prompt) - len(last)], {})
-        ranked = sorted(logprobs.items(), key=lambda kv: kv[1], reverse=True)
-        rank = {text: i + 1 for i, (text, _) in enumerate(ranked)}
-        row = {
-            str(self.tokenizer.id_of(last)): {
-                "logprob": logprobs.get(last, -20.0),
-                "rank": rank.get(last, len(ranked) + 1),
-                "decoded_token": last,
-            }
-        }
-        for text, lp in ranked[: min(int(body["prompt_logprobs"]), b.top_k_cap)]:
-            if text != last:
-                row[str(self.tokenizer.id_of(text))] = {
-                    "logprob": lp,
-                    "rank": rank[text],
-                    "decoded_token": text,
-                }
-        rows.append(row)
+        rows.append(self._row(prompt[: len(prompt) - len(last)], last, body))
         return rows
 
     def _too_long(self, prompt: str) -> JSONResponse | None:
@@ -433,6 +470,8 @@ class FakeOpenAIServer:
             return gated
         if (refused := self._refuse_reply_logprobs(body)) is not None:
             return refused
+        if "messages" in body:
+            return await self._completions_messages(body)
         prompt = body["prompt"]
         if isinstance(prompt, list):
             prompt = " ".join(str(t) for t in prompt)
@@ -497,6 +536,46 @@ class FakeOpenAIServer:
                         "finish_reason": "length",
                     }
                 ],
+                "usage": usage,
+            }
+        )
+
+    async def _completions_messages(self, body: dict[str, Any]) -> JSONResponse:
+        b = self.behaviour
+        if not b.completions_messages:
+            self.in_flight -= 1
+            return JSONResponse({"error": {"message": "prompt is required"}}, status_code=400)
+        images = sum(
+            sum(1 for p in m["content"] if p.get("type") == "image_url")
+            for m in body["messages"]
+            if isinstance(m.get("content"), list)
+        )
+        if images and not b.multimodal:
+            self.in_flight -= 1
+            return JSONResponse(
+                {"error": {"message": "this model does not accept image input"}}, status_code=400
+            )
+        pieces = self._message_pieces(body)
+        prompt = "".join(pieces)
+        if (bad := self._too_long(prompt)) is not None:
+            return bad
+        logprobs = self._distribution(prompt, body)
+        sampled = max(logprobs.items(), key=lambda kv: kv[1])
+        usage = await self._cache_and_usage(prompt, body, images * b.image_tokens)
+        choice: dict[str, Any] = {
+            "index": 0,
+            "text": sampled[0],
+            "logprobs": None,
+            "finish_reason": "length",
+        }
+        if body.get("prompt_logprobs") is not None and b.prompt_logprobs:
+            choice["prompt_logprobs"] = self._message_rows(pieces, body)
+        return self._record(
+            {
+                "id": "cmpl-fake",
+                "object": "text_completion",
+                "model": body.get("model", "fake"),
+                "choices": [choice],
                 "usage": usage,
             }
         )
